@@ -1162,8 +1162,6 @@ static switch_status_t handle_request_fetch_reply(ei_node_t *ei_node, erlang_pid
 	}
 
 	if (result == SWITCH_STATUS_SUCCESS) {
-		switch_safe_free(xml_str);
-
 		return erlang_response_ok(rbuf);
 	} else {
 		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR,
