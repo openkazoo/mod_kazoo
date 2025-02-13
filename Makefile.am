@@ -27,9 +27,6 @@ $(KAZOO_DEFS): kazoo.conf.xml
 .S.o: $<
 	@$(CC) $(CFLAGS) -o $@ -c $<
 
-install-exec-am:
-	@install `which epmd` $(DESTDIR)$(bindir)/fs_epmd
-
 else
 install: error
 all: error

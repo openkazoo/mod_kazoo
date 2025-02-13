@@ -574,7 +574,7 @@ switch_status_t create_acceptor()
 	if ((kazoo_globals.epmdfd = ei_publish(&kazoo_globals.ei_cnode, port)) == -1) {
 		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_WARNING,
 						  "Failed to publish port to epmd, trying to start epmd via system()\n");
-		if (system("fs_epmd -daemon")) {
+		if (system("epmd -daemon")) {
 			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR,
 							  "Failed to start epmd manually! Is epmd in $PATH? If not, start it yourself or run an "
 							  "erl shell with -sname or -name\n");
