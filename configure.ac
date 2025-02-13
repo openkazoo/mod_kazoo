@@ -3,6 +3,16 @@ AC_INIT([freeswitch_standalone_module], [1.7.0], bugs@freeswitch.org)
 AC_CONFIG_MACRO_DIR(config)
 AM_INIT_AUTOMAKE
 
+# Check for FreeBSD
+AC_CANONICAL_HOST
+case $host_os in
+    freebsd*)
+        # Add FreeBSD-specific settings
+        CPPFLAGS="$CPPFLAGS -I/usr/local/include"
+        LDFLAGS="$LDFLAGS -L/usr/local/lib"
+        ;;
+esac
+
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 AM_PROG_CC_C_O

@@ -23,12 +23,12 @@ then
 		AC_MSG_RESULT([$with_erlang])
 		AC_SUBST([ERLANG], ["$with_erlang"])
 	else
-		AC_PATH_PROG([ERLANG], ["erl"], ["no"], ["$PATH:/usr/bin:/usr/local/bin"])
+		AC_PATH_PROG([ERLANG], ["erl"], ["no"], ["$PATH:/usr/bin:/usr/local/bin:/usr/local/lib/erlang/bin"])
 	fi
 
 	if test "$ERLANG" != "no" ; then
 		AC_MSG_CHECKING([erlang version])
-		ERLANG_VER="`$ERLANG -version 2>&1 | cut -d' ' -f6`"
+		ERLANG_VER=`$ERLANG -noshell -eval 'io:format("~s", [[erlang:system_info(version)]]).' -s erlang halt`
 
 		if test -z "$ERLANG_VER" ; then
 			AC_MSG_ERROR([Unable to detect erlang version])
@@ -36,6 +36,15 @@ then
 		AC_MSG_RESULT([$ERLANG_VER])
 
 		ERLANG_LIBDIR=`$ERLANG -noshell -eval 'io:format("~n~s/lib~n", [[code:lib_dir("erl_interface")]]).' -s erlang halt | tail -n 1`
+		if test -z "$ERLANG_LIBDIR" ; then
+			# Fallback for FreeBSD default paths
+			for dir in "/usr/local/lib/erlang/lib/erl_interface-"* ; do
+				if test -d "$dir" ; then
+					ERLANG_LIBDIR="$dir/lib"
+					break
+				fi
+			done
+		fi
 		AC_MSG_CHECKING([erlang libdir])
 		if test -z "`echo $ERLANG_LIBDIR`" ; then
 			AC_MSG_ERROR([failed])
