@@ -5,9 +5,9 @@
 #include <switch.h>
 
 #define MODNAME "mod_kazoo"
-#define BUNDLE "community"
-#define RELEASE "v1.5.0-1"
-#define VERSION "mod_kazoo v1.5.0-1 community"
+#define KAZOO_BUNDLE "openkazoo"
+#define KAZOO_RELEASE "v4.4.0-0"
+#define KAZOO_VERSION "mod_kazoo v4.4.0-0 (openkazoo)"
 
 #define KZ_MAX_SEPARATE_STRINGS 10
 #define HOSTNAME_MAX 1024
@@ -34,6 +34,7 @@ typedef kazoo_config *kazoo_config_ptr;
 
 #include "kazoo_config.h"
 #include "kazoo_fields.h"
+#include "kazoo_tweaks.h"
 
 struct ei_send_msg_s {
 	ei_x_buff buf;
@@ -243,15 +244,15 @@ int ei_decode_string_or_binary_limited(char *buf, int *index, int maxsize, char 
 int ei_decode_string_or_binary(char *buf, int *index, char **dst);
 switch_status_t create_acceptor();
 switch_hash_t *create_default_filter();
-void kz_erl_init();
-void kz_erl_shutdown();
+void kz_erl_init(void);
+void kz_erl_shutdown(void);
 SWITCH_DECLARE(switch_status_t) ei_queue_pop(switch_queue_t *queue, void **data, switch_interval_time_t timeout);
 
-void fetch_config();
+void fetch_config(void);
 
 switch_status_t kazoo_load_config();
-void kazoo_destroy_config();
-void kz_set_hostname();
+void kazoo_destroy_config(void);
+void kz_set_hostname(void);
 
 #define _ei_x_encode_string(buf, string)                                                                               \
 	{                                                                                                                  \

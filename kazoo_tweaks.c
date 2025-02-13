@@ -612,7 +612,7 @@ static switch_state_handler_table_t kz_tweaks_state_handlers = {
 	/*.on_reporting */ NULL,
 	/*.on_destroy */ NULL};
 
-static void kz_tweaks_register_state_handlers()
+static void kz_tweaks_register_state_handlers(void)
 {
 	/*
 	 * we may need two handlers
@@ -626,12 +626,12 @@ static void kz_tweaks_register_state_handlers()
 	switch_core_add_state_handler(&kz_tweaks_state_handlers);
 }
 
-static void kz_tweaks_unregister_state_handlers()
+static void kz_tweaks_unregister_state_handlers(void)
 {
 	switch_core_remove_state_handler(&kz_tweaks_state_handlers);
 }
 
-static void kz_tweaks_bind_events()
+static void kz_tweaks_bind_events(void)
 {
 	if (switch_event_bind("kz_tweaks", SWITCH_EVENT_CHANNEL_BRIDGE, SWITCH_EVENT_SUBCLASS_ANY,
 						  kz_tweaks_channel_bridge_event_handler, NULL) != SWITCH_STATUS_SUCCESS) {
@@ -655,7 +655,7 @@ static void kz_tweaks_bind_events()
 	}
 }
 
-static void kz_tweaks_unbind_events()
+static void kz_tweaks_unbind_events(void)
 {
 	switch_event_unbind_callback(kz_tweaks_channel_bridge_event_handler);
 	switch_event_unbind_callback(kz_tweaks_channel_replaced_event_handler);
@@ -664,19 +664,19 @@ static void kz_tweaks_unbind_events()
 	switch_event_unbind_callback(kz_tweaks_channel_transferee_event_handler);
 }
 
-void kz_tweaks_add_core_variables()
+void kz_tweaks_add_core_variables(void)
 {
 	switch_core_set_variable("UNIX_EPOCH_IN_GREGORIAN", UNIX_EPOCH_IN_GREGORIAN_STR);
 }
 
-void kz_tweaks_start()
+void kz_tweaks_start(void)
 {
 	kz_tweaks_add_core_variables();
 	kz_tweaks_register_state_handlers();
 	kz_tweaks_bind_events();
 }
 
-void kz_tweaks_stop()
+void kz_tweaks_stop(void)
 {
 	kz_tweaks_unbind_events();
 	kz_tweaks_unregister_state_handlers();

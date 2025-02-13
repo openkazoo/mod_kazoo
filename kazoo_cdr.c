@@ -614,35 +614,35 @@ static switch_state_handler_table_t kz_cdr_state_handlers = {
 	/*.on_park */ NULL,
 	/*.on_reporting */ kz_cdr_on_reporting};
 
-static void kz_cdr_register_state_handlers()
+static void kz_cdr_register_state_handlers(void)
 {
 	switch_core_add_state_handler(&kz_cdr_state_handlers);
 }
 
-static void kz_cdr_unregister_state_handlers()
+static void kz_cdr_unregister_state_handlers(void)
 {
 	switch_core_remove_state_handler(&kz_cdr_state_handlers);
 }
 
-static void kz_cdr_register_events()
+static void kz_cdr_register_events(void)
 {
 	if (switch_event_reserve_subclass(MY_EVENT_JSON_CDR) != SWITCH_STATUS_SUCCESS) {
 		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Failed to register subclass %s\n", MY_EVENT_JSON_CDR);
 	}
 }
 
-static void kz_cdr_unregister_events()
+static void kz_cdr_unregister_events(void)
 {
 	switch_event_free_subclass(MY_EVENT_JSON_CDR);
 }
 
-void kz_cdr_start()
+void kz_cdr_start(void)
 {
 	kz_cdr_register_events();
 	kz_cdr_register_state_handlers();
 }
 
-void kz_cdr_stop()
+void kz_cdr_stop(void)
 {
 	kz_cdr_unregister_state_handlers();
 	kz_cdr_unregister_events();

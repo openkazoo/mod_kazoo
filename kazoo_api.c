@@ -136,7 +136,7 @@ static switch_status_t api_erlang_status(switch_stream_handle_t *stream)
 	port = switch_sockaddr_get_port(sa);
 	ip_addr = switch_get_addr(ipbuf, sizeof(ipbuf), sa);
 
-	stream->write_function(stream, "Running %s\n", VERSION);
+	stream->write_function(stream, "Running %s\n", KAZOO_VERSION);
 	stream->write_function(stream, "Listening for new Erlang connections on %s:%u with cookie %s\n", ip_addr, port,
 						   kazoo_globals.ei_cookie);
 	stream->write_function(stream, "Registered as Erlang node %s, visible as %s\n", kazoo_globals.ei_cnode.thisnodename,
@@ -576,7 +576,7 @@ void add_cli_api(switch_loadable_module_interface_t **module_interface)
 	switch_console_add_complete_func("::erlang::node", api_complete_erlang_node);
 }
 
-void remove_cli_api()
+void remove_cli_api(void)
 {
 	switch_console_set_complete("del erlang");
 	switch_console_del_complete_func("::erlang::node");

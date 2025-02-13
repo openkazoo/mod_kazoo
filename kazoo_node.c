@@ -850,7 +850,7 @@ static switch_status_t handle_request_version(ei_node_t *ei_node, erlang_pid *pi
 	if (rbuf) {
 		ei_x_encode_tuple_header(rbuf, 2);
 		ei_x_encode_atom(rbuf, "ok");
-		_ei_x_encode_string(rbuf, VERSION);
+		_ei_x_encode_string(rbuf, KAZOO_VERSION);
 	}
 
 	return SWITCH_STATUS_SUCCESS;

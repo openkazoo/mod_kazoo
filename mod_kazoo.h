@@ -33,7 +33,7 @@ void add_kz_dptools(switch_loadable_module_interface_t **module_interface);
 
 /* kazoo_api.c */
 void add_cli_api(switch_loadable_module_interface_t **module_interface);
-void remove_cli_api();
+void remove_cli_api(void);
 
 /* kazoo_utils.c */
 /*
@@ -54,12 +54,12 @@ switch_status_t kz_json_api(const char * command, cJSON *args, cJSON **res);
 void add_kz_endpoints(switch_loadable_module_interface_t **module_interface);
 
 /* kazoo_cdr.c */
-void kz_cdr_start();
-void kz_cdr_stop();
+void kz_cdr_start(void);
+void kz_cdr_stop(void);
 
 /* kazoo_tweaks.c */
-void kz_tweaks_start();
-void kz_tweaks_stop();
+void kz_tweaks_start(void);
+void kz_tweaks_stop(void);
 SWITCH_DECLARE(const char *) kz_tweak_name(kz_tweak_t tweak);
 SWITCH_DECLARE(switch_status_t) kz_name_tweak(const char *name, kz_tweak_t *type);
 

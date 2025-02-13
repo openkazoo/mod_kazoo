@@ -41,6 +41,18 @@
 
 #include <switch.h>
 
+typedef struct kazoo_field_t kazoo_field;
+typedef kazoo_field *kazoo_field_ptr;
+
+typedef struct kazoo_fields_t kazoo_fields;
+typedef kazoo_fields *kazoo_fields_ptr;
+
+typedef struct kazoo_filter_t kazoo_filter;
+typedef kazoo_filter *kazoo_filter_ptr;
+
+typedef struct kazoo_log_levels kazoo_loglevels_t;
+typedef kazoo_loglevels_t *kazoo_loglevels_ptr;
+
 struct kazoo_config_t {
 	switch_hash_t *hash;
 	switch_memory_pool_t *pool;

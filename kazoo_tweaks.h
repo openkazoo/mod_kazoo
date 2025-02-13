@@ -20,8 +20,8 @@ typedef enum {
 	KZ_TWEAK_MAX
 } kz_tweak_t;
 
-void kz_tweaks_start();
-void kz_tweaks_stop();
+void kz_tweaks_start(void);
+void kz_tweaks_stop(void);
 SWITCH_DECLARE(const char *) kz_tweak_name(kz_tweak_t tweak);
 SWITCH_DECLARE(switch_status_t) kz_name_tweak(const char *name, kz_tweak_t *type);
 

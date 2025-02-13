@@ -111,7 +111,7 @@ static int read_cookie_from_file(char *filename)
 	}
 }
 
-void kz_set_hostname()
+void kz_set_hostname(void)
 {
 	if (kazoo_globals.hostname == NULL) {
 		char hostname[NODENAME_MAX];
@@ -542,7 +542,7 @@ switch_status_t kazoo_load_config()
 	return SWITCH_STATUS_SUCCESS;
 }
 
-void kazoo_destroy_config()
+void kazoo_destroy_config(void)
 {
 	destroy_config(&kazoo_globals.event_handlers);
 	destroy_config(&kazoo_globals.fetch_handlers);

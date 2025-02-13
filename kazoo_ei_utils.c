@@ -963,7 +963,7 @@ static void *SWITCH_THREAD_FUNC fetch_config_exec(switch_thread_t *thread, void 
 	return NULL;
 }
 
-void fetch_config()
+void fetch_config(void)
 {
 	switch_memory_pool_t *pool;
 	switch_thread_t *thread;
@@ -1017,14 +1017,14 @@ int ei_mutex_free(ei_mutex_t *l, int nblock);
 #endif
 #endif
 
-void kz_erl_init()
+void kz_erl_init(void)
 {
 #if (ERLANG_MAJOR == 10 && ERLANG_MINOR >= 3) || ERLANG_MAJOR >= 11
 	ei_init();
 #endif
 }
 
-void kz_erl_shutdown()
+void kz_erl_shutdown(void)
 {
 #ifdef WITH_KAZOO_ERL_SHUTDOWN
 #if (ERLANG_MAJOR == 10 && ERLANG_MINOR >= 3) || ERLANG_MAJOR >= 11
