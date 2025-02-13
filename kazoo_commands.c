@@ -30,6 +30,7 @@
  * kazoo_commands.c -- clones of mod_commands commands slightly modified for kazoo
  *
  */
+
 #include "mod_kazoo.h"
 #include <curl/curl.h>
 #include <switch_curl.h>
@@ -51,59 +52,60 @@
 SWITCH_STANDARD_API(kz_first_of)
 {
 	char delim = '|';
-	char *mycmd = NULL, *mycmd_dup = NULL, *argv[MAX_FIRST_OF] = { 0 };
+	char *mycmd = NULL, *mycmd_dup = NULL, *argv[MAX_FIRST_OF] = {0};
 	int n, argc = 0;
 	switch_event_header_t *header = NULL;
 	switch_channel_t *channel = NULL;
 
 	if (zstr(cmd)) {
-		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "invalid arg\n");
+		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Invalid arg\n");
 		return SWITCH_STATUS_GENERR;
 	}
 
-	if ( session ) {
+	if (session) {
 		channel = switch_core_session_get_channel(session);
-		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG1, "GOT CHANNEL\n");
+		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG1, "Got channel\n");
 	}
 
 	mycmd_dup = mycmd = strdup(cmd);
-	switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG1, "FIRST-OF %s\n", mycmd);
-	if (!zstr(mycmd) && *mycmd == '^' && *(mycmd+1) == '^') {
+	switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG1, "First-of %s\n", mycmd);
+	if (!zstr(mycmd) && *mycmd == '^' && *(mycmd + 1) == '^') {
 		mycmd += 2;
 		delim = *mycmd++;
 	}
 	argc = switch_separate_string(mycmd, delim, argv, (sizeof(argv) / sizeof(argv[0])));
-	for(n=0; n < argc; n++) {
-		char* item = argv[n];
-		if(*item == '#' || *item == '!' || *item == '?') {
-			if(*(++item) != '\0') {
-				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG1, "RETURNING default %s\n", item);
+	for (n = 0; n < argc; n++) {
+		char *item = argv[n];
+		if (*item == '#' || *item == '!' || *item == '?') {
+			if (*(++item) != '\0') {
+				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG1, "Returning default: %s\n", item);
 				stream->write_function(stream, item);
 				break;
 			}
 		} else {
-			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG1, "CHECKING %s\n", item);
+			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG1, "Checking: %s\n", item);
 			if (channel) {
 				const char *var = switch_channel_get_variable_dup(channel, item, SWITCH_FALSE, -1);
-				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG1, "CHECKING CHANNEL %s\n", item);
+				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG1, "Checking channel: %s\n", item);
 				if (var) {
-					switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG1, "GOT FROM CHANNEL %s => %s\n", item, var);
+					switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG1, "Got from channel: %s => %s\n", item, var);
 					stream->write_function(stream, var);
 					break;
 				}
 				if (!strncmp(item, "variable_", 9)) {
-					switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG1, "CHECKING CHANNEL %s\n", item+9);
-					var = switch_channel_get_variable_dup(channel, item+9, SWITCH_FALSE, -1);
+					switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG1, "Checking channel: %s\n", item + 9);
+					var = switch_channel_get_variable_dup(channel, item + 9, SWITCH_FALSE, -1);
 					if (var) {
-						switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG1, "GOT FROM CHANNEL %s => %s\n", item+9, var);
+						switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG1, "Got from channel: %s => %s\n",
+										  item + 9, var);
 						stream->write_function(stream, var);
 						break;
 					}
 				}
 			}
 			header = switch_event_get_header_ptr(stream->param_event, item);
-			if(header) {
-				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG1, "RETURNING %s : %s\n", item, header->value);
+			if (header) {
+				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG1, "Returning %s: %s\n", item, header->value);
 				stream->write_function(stream, header->value);
 				break;
 			}
@@ -114,10 +116,11 @@ SWITCH_STANDARD_API(kz_first_of)
 	return SWITCH_STATUS_SUCCESS;
 }
 
-switch_status_t kz_uuid_setvar(int urldecode, const char *cmd,  switch_core_session_t *session,  switch_stream_handle_t *stream)
+switch_status_t kz_uuid_setvar(int urldecode, const char *cmd, switch_core_session_t *session,
+							   switch_stream_handle_t *stream)
 {
 	switch_core_session_t *psession = NULL;
-	char *mycmd = NULL, *argv[3] = { 0 };
+	char *mycmd = NULL, *argv[3] = {0};
 	int argc = 0;
 
 	if (!zstr(cmd) && (mycmd = strdup(cmd))) {
@@ -137,10 +140,11 @@ switch_status_t kz_uuid_setvar(int urldecode, const char *cmd,  switch_core_sess
 				channel = switch_core_session_get_channel(psession);
 
 				if (zstr(var_name)) {
-					switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_ERROR, "No variable name specified.\n");
+					switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_ERROR,
+									  "No variable name specified\n");
 					stream->write_function(stream, "-ERR No variable specified\n");
 				} else {
-					if(urldecode) {
+					if (urldecode) {
 						switch_url_decode(var_value);
 					}
 					switch_channel_set_variable(channel, var_name, var_value);
@@ -164,7 +168,7 @@ switch_status_t kz_uuid_setvar(int urldecode, const char *cmd,  switch_core_sess
 
 	stream->write_function(stream, "-USAGE: %s\n", UUID_SET_SYNTAX);
 
-  done:
+done:
 	switch_safe_free(mycmd);
 	return SWITCH_STATUS_SUCCESS;
 }
@@ -179,11 +183,12 @@ SWITCH_STANDARD_API(uuid_setvar_encoded_function)
 	return kz_uuid_setvar(1, cmd, session, stream);
 }
 
-switch_status_t kz_uuid_setvar_multi(int urldecode, const char *cmd,  switch_core_session_t *session,  switch_stream_handle_t *stream)
+switch_status_t kz_uuid_setvar_multi(int urldecode, const char *cmd, switch_core_session_t *session,
+									 switch_stream_handle_t *stream)
 {
 	switch_core_session_t *psession = NULL;
 	char delim = ';';
-	char *mycmd = NULL, *vars, *argv[64] = { 0 };
+	char *mycmd = NULL, *vars, *argv[64] = {0};
 	int argc = 0;
 	char *var_name, *var_value = NULL;
 
@@ -193,7 +198,7 @@ switch_status_t kz_uuid_setvar_multi(int urldecode, const char *cmd,  switch_cor
 			goto done;
 		}
 		*vars++ = '\0';
-		if (*vars == '^' && *(vars+1) == '^') {
+		if (*vars == '^' && *(vars + 1) == '^') {
 			vars += 2;
 			delim = *vars++;
 		}
@@ -209,10 +214,11 @@ switch_status_t kz_uuid_setvar_multi(int urldecode, const char *cmd,  switch_cor
 					*var_value++ = '\0';
 				}
 				if (zstr(var_name)) {
-					switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_ERROR, "No variable name specified.\n");
+					switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_ERROR,
+									  "No variable name specified\n");
 					stream->write_function(stream, "-ERR No variable specified\n");
 				} else {
-					if(urldecode) {
+					if (urldecode) {
 						switch_url_decode(var_value);
 					}
 					switch_channel_set_variable(channel, var_name, var_value);
@@ -222,7 +228,7 @@ switch_status_t kz_uuid_setvar_multi(int urldecode, const char *cmd,  switch_cor
 				}
 			}
 
-                        /* keep kazoo nodes in sync */
+			/* keep kazoo nodes in sync */
 			if (switch_event_create(&event, SWITCH_EVENT_CHANNEL_DATA) == SWITCH_STATUS_SUCCESS) {
 				switch_channel_event_set_data(channel, event);
 				switch_event_fire(&event);
@@ -240,7 +246,7 @@ switch_status_t kz_uuid_setvar_multi(int urldecode, const char *cmd,  switch_cor
 
 	stream->write_function(stream, "-USAGE: %s\n", UUID_MULTISET_SYNTAX);
 
-  done:
+done:
 	switch_safe_free(mycmd);
 	return SWITCH_STATUS_SUCCESS;
 }
@@ -262,10 +268,10 @@ static size_t body_callback(char *buffer, size_t size, size_t nitems, void *user
 
 static size_t header_callback(char *buffer, size_t size, size_t nitems, void *userdata)
 {
-	switch_event_t* event = (switch_event_t*)userdata;
+	switch_event_t *event = (switch_event_t *)userdata;
 	int len = strlen(buffer);
 	char buf[1024];
-	if(len > 2 && len < 1024) {
+	if (len > 2 && len < 1024) {
 		snprintf(buf, sizeof(buf), "%s", buffer);
 		switch_event_add_header_string(event, SWITCH_STACK_PUSH | SWITCH_STACK_BOTTOM, "Reply-Headers", buf);
 	}
@@ -278,15 +284,15 @@ SWITCH_STANDARD_API(kz_http_put)
 	switch_memory_pool_t *lpool = NULL;
 	switch_memory_pool_t *pool = NULL;
 	char *args = NULL;
-	char *argv[10] = { 0 };
+	char *argv[10] = {0};
 	int argc = 0;
 	switch_event_t *params = NULL;
 	char *url = NULL;
 	char *filename = NULL;
 	int delete_file = 0;
 
-	switch_curl_slist_t *headers = NULL;  /* optional linked-list of HTTP headers */
-	char *ext;  /* file extension, used for MIME type identification */
+	switch_curl_slist_t *headers = NULL; /* optional linked-list of HTTP headers */
+	char *ext;							 /* file extension, used for MIME type identification */
 	const char *mime_type = "application/octet-stream";
 	char *buf = NULL;
 	char *error = NULL;
@@ -341,10 +347,10 @@ SWITCH_STANDARD_API(kz_http_put)
 	headers = switch_curl_slist_append(headers, buf);
 
 	/* open file and get the file size */
-	switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "opening %s for upload to %s\n", filename, url);
+	switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Opening %s for upload to %s\n", filename, url);
 
 	/* libcurl requires FILE* */
- 	file_to_put = fopen(filename, "rb");
+	file_to_put = fopen(filename, "rb");
 	if (!file_to_put) {
 		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "fopen() error: %s\n", strerror(errno));
 		stream->write_function(stream, "-ERR error opening file\n");
@@ -353,7 +359,8 @@ SWITCH_STANDARD_API(kz_http_put)
 	}
 
 	if (fstat(fileno(file_to_put), &file_info) == -1) {
-		switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_ERROR, "fstat() error: %s\n", strerror(errno));
+		switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_ERROR, "fstat() error: %s\n",
+						  strerror(errno));
 		stream->write_function(stream, "-ERR fstat error\n");
 		goto done;
 	}
@@ -389,7 +396,8 @@ SWITCH_STANDARD_API(kz_http_put)
 
 	if (httpRes == 200 || httpRes == 201 || httpRes == 202 || httpRes == 204) {
 		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "%s saved to %s\n", filename, url);
-		switch_event_add_header(stream->param_event, SWITCH_STACK_BOTTOM, "API-Output", "%s saved to %s", filename, url);
+		switch_event_add_header(stream->param_event, SWITCH_STACK_BOTTOM, "API-Output", "%s saved to %s", filename,
+								url);
 		stream->write_function(stream, "+OK %s saved to %s", filename, url);
 		delete_file = 1;
 	} else {
@@ -404,7 +412,7 @@ SWITCH_STANDARD_API(kz_http_put)
 done:
 	if (file_to_put) {
 		fclose(file_to_put);
-		if(delete_file) {
+		if (delete_file) {
 			remove(filename);
 		}
 	}
@@ -472,7 +480,6 @@ SWITCH_STANDARD_API(kz_eval_api)
 	char *uuid = NULL, *mycmd;
 	switch_core_session_t *nsession = NULL;
 	switch_channel_t *channel = NULL;
-
 
 	if (zstr(cmd)) {
 		stream->write_function(stream, "-ERR invalid input");
@@ -551,13 +558,15 @@ SWITCH_STANDARD_API(kz_contact_fun)
 
 	/*
 	if (session) {
-		switch_event_add_header_string(params, SWITCH_STACK_BOTTOM, "Fetch-Call-UUID", switch_core_session_get_uuid(session));
-	} else if (stream->param_event && (var = switch_event_get_header(stream->param_event, "ent_originate_aleg_uuid")) != NULL) {
+		switch_event_add_header_string(params, SWITCH_STACK_BOTTOM, "Fetch-Call-UUID",
+	switch_core_session_get_uuid(session)); } else if (stream->param_event && (var =
+	switch_event_get_header(stream->param_event, "ent_originate_aleg_uuid")) != NULL) {
 		switch_event_add_header_string(params, SWITCH_STACK_BOTTOM, "Fetch-Call-UUID", var);
 	}
 	*/
 
-	if (switch_xml_locate("directory", "location", "id", cmd, &xml_root, &xml_node, params, SWITCH_FALSE) != SWITCH_STATUS_SUCCESS) {
+	if (switch_xml_locate("directory", "location", "id", cmd, &xml_root, &xml_node, params, SWITCH_FALSE) !=
+		SWITCH_STATUS_SUCCESS) {
 		stream->write_function(stream, "%s", reply);
 		return SWITCH_STATUS_SUCCESS;
 	}
@@ -573,14 +582,18 @@ SWITCH_STANDARD_API(kz_contact_fun)
 	return SWITCH_STATUS_SUCCESS;
 }
 
-void add_kz_commands(switch_loadable_module_interface_t **module_interface) {
+void add_kz_commands(switch_loadable_module_interface_t **module_interface)
+{
 	switch_api_interface_t *api_interface = NULL;
-	SWITCH_ADD_API(api_interface, "kz_uuid_setvar_multi", UUID_SET_DESC, uuid_setvar_multi_function, UUID_MULTISET_SYNTAX);
-	SWITCH_ADD_API(api_interface, "kz_uuid_setvar_multi_encoded", UUID_SET_DESC, uuid_setvar_multi_encoded_function, UUID_MULTISET_SYNTAX);
+	SWITCH_ADD_API(api_interface, "kz_uuid_setvar_multi", UUID_SET_DESC, uuid_setvar_multi_function,
+				   UUID_MULTISET_SYNTAX);
+	SWITCH_ADD_API(api_interface, "kz_uuid_setvar_multi_encoded", UUID_SET_DESC, uuid_setvar_multi_encoded_function,
+				   UUID_MULTISET_SYNTAX);
 	switch_console_set_complete("add kz_uuid_setvar_multi ::console::list_uuid");
 	switch_console_set_complete("add kz_uuid_setvar_multi_encoded ::console::list_uuid");
 	SWITCH_ADD_API(api_interface, "kz_uuid_setvar", UUID_MULTISET_DESC, uuid_setvar_function, UUID_SET_SYNTAX);
-	SWITCH_ADD_API(api_interface, "kz_uuid_setvar_encoded", UUID_MULTISET_DESC, uuid_setvar_encoded_function, UUID_SET_SYNTAX);
+	SWITCH_ADD_API(api_interface, "kz_uuid_setvar_encoded", UUID_MULTISET_DESC, uuid_setvar_encoded_function,
+				   UUID_SET_SYNTAX);
 	switch_console_set_complete("add kz_uuid_setvar ::console::list_uuid");
 	switch_console_set_complete("add kz_uuid_setvar_encoded ::console::list_uuid");
 	SWITCH_ADD_API(api_interface, "kz_http_put", KZ_HTTP_PUT_DESC, kz_http_put, KZ_HTTP_PUT_SYNTAX);
@@ -589,4 +602,3 @@ void add_kz_commands(switch_loadable_module_interface_t **module_interface) {
 	SWITCH_ADD_API(api_interface, "kz_eval", KZ_FIRST_OF_DESC, kz_eval_api, KZ_FIRST_OF_SYNTAX);
 	SWITCH_ADD_API(api_interface, "kz_contact", KZ_CONTACT_DESC, kz_contact_fun, KZ_CONTACT_SYNTAX);
 }
-

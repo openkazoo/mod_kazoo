@@ -30,11 +30,10 @@
  * mod_kazoo.c -- Socket Controlled Event Handler
  *
  */
+
 #include "mod_kazoo.h"
 
 kz_globals_t kazoo_globals = {0};
-
-
 
 SWITCH_MODULE_DEFINITION(mod_kazoo, mod_kazoo_load, mod_kazoo_shutdown, mod_kazoo_runtime);
 
@@ -45,9 +44,10 @@ SWITCH_MODULE_LOAD_FUNCTION(mod_kazoo_load)
 	memset(&kazoo_globals, 0, sizeof(kazoo_globals));
 	kazoo_globals.pool = pool;
 	kz_set_hostname();
-	if(kazoo_load_config() != SWITCH_STATUS_SUCCESS) {
+	if (kazoo_load_config() != SWITCH_STATUS_SUCCESS) {
 		// TODO: what would we need to clean up here?
-		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Improper configuration!\n");
+		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR,
+						  "Failed to load configuration (invalid configuration)\n");
 		return SWITCH_STATUS_TERM;
 	}
 
@@ -86,7 +86,8 @@ SWITCH_MODULE_LOAD_FUNCTION(mod_kazoo_load)
 	return SWITCH_STATUS_SUCCESS;
 }
 
-SWITCH_MODULE_SHUTDOWN_FUNCTION(mod_kazoo_shutdown) {
+SWITCH_MODULE_SHUTDOWN_FUNCTION(mod_kazoo_shutdown)
+{
 	int sanity = 0;
 
 	remove_cli_api();
@@ -102,7 +103,7 @@ SWITCH_MODULE_SHUTDOWN_FUNCTION(mod_kazoo_shutdown) {
 	while (switch_atomic_read(&kazoo_globals.threads)) {
 		switch_yield(100000);
 		if (++sanity >= 200) {
-			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Unable to kill all threads, continuing. This probably wont end well.....good luck!\n");
+			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Failed to kill all threads, continuing anyway\n");
 			break;
 		}
 	}
@@ -138,15 +139,3 @@ SWITCH_MODULE_SHUTDOWN_FUNCTION(mod_kazoo_shutdown) {
 
 	return SWITCH_STATUS_SUCCESS;
 }
-
-
-/* For Emacs:
- * Local Variables:
- * mode:c
- * indent-tabs-mode:t
- * tab-width:4
- * c-basic-offset:4
- * End:
- * For VIM:
- * vim:set softtabstop=4 shiftwidth=4 tabstop=4:
- */

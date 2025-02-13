@@ -25,8 +25,6 @@ void kz_tweaks_stop();
 SWITCH_DECLARE(const char *) kz_tweak_name(kz_tweak_t tweak);
 SWITCH_DECLARE(switch_status_t) kz_name_tweak(const char *name, kz_tweak_t *type);
 
-
 #define kz_test_tweak(flag) (kazoo_globals.tweaks[flag] ? 1 : 0)
 #define kz_set_tweak(flag) kazoo_globals.tweaks[flag] = 1
 #define kz_clear_tweak(flag) kazoo_globals.tweaks[flag] = 0
-

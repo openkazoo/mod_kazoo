@@ -32,27 +32,28 @@
  * ei_helpers.c -- helper functions for ei
  *
  */
+
 #include "mod_kazoo.h"
 
-#define kz_resize(l) {\
-char *dp;\
-olen += (len + l + block);\
-cpos = c - data;\
-if ((dp = realloc(data, olen))) {\
-	data = dp;\
-	c = data + cpos;\
-	memset(c, 0, olen - cpos);\
- }}                           \
+#define kz_resize(l)                                                                                                   \
+	{                                                                                                                  \
+		char *dp;                                                                                                      \
+		olen += (len + l + block);                                                                                     \
+		cpos = c - data;                                                                                               \
+		if ((dp = realloc(data, olen))) {                                                                              \
+			data = dp;                                                                                                 \
+			c = data + cpos;                                                                                           \
+			memset(c, 0, olen - cpos);                                                                                 \
+		}                                                                                                              \
+	}
 
-
-void kz_check_set_profile_var(switch_channel_t *channel, char* var, char *val)
+void kz_check_set_profile_var(switch_channel_t *channel, char *var, char *val)
 {
 	int idx = 0;
-	while(kazoo_globals.profile_vars_prefixes[idx] != NULL) {
+	while (kazoo_globals.profile_vars_prefixes[idx] != NULL) {
 		char *prefix = kazoo_globals.profile_vars_prefixes[idx];
 		if (!strncasecmp(var, prefix, strlen(prefix))) {
 			switch_channel_set_profile_var(channel, var + strlen(prefix), val);
-
 		}
 		idx++;
 	}
@@ -62,7 +63,7 @@ SWITCH_DECLARE(switch_status_t) kz_switch_core_merge_variables(switch_event_t *e
 {
 	switch_event_t *global_vars;
 	switch_status_t status = switch_core_get_variables(&global_vars);
-	if(status == SWITCH_STATUS_SUCCESS) {
+	if (status == SWITCH_STATUS_SUCCESS) {
 		switch_event_merge(event, global_vars);
 		switch_event_destroy(&global_vars);
 	}
@@ -73,13 +74,14 @@ SWITCH_DECLARE(switch_status_t) kz_switch_core_base_headers_for_expand(switch_ev
 {
 	switch_status_t status = SWITCH_STATUS_GENERR;
 	*event = NULL;
-	if(switch_event_create(event, SWITCH_EVENT_GENERAL) == SWITCH_STATUS_SUCCESS) {
+	if (switch_event_create(event, SWITCH_EVENT_GENERAL) == SWITCH_STATUS_SUCCESS) {
 		status = kz_switch_core_merge_variables(*event);
 	}
 	return status;
 }
 
-SWITCH_DECLARE(switch_status_t) kz_expand_api_execute(const char *cmd, const char *arg, switch_core_session_t *session, switch_stream_handle_t *stream)
+SWITCH_DECLARE(switch_status_t)
+kz_expand_api_execute(const char *cmd, const char *arg, switch_core_session_t *session, switch_stream_handle_t *stream)
 {
 	switch_api_interface_t *api;
 	switch_status_t status;
@@ -94,7 +96,7 @@ SWITCH_DECLARE(switch_status_t) kz_expand_api_execute(const char *cmd, const cha
 	arg_used = switch_strip_whitespace(arg);
 
 	if (cmd_used && (api = switch_loadable_module_get_api_interface(cmd_used)) != 0) {
-		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG1, "executing [%s] => [%s]\n", cmd_used, arg_used);
+		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG1, "Executing [%s] => [%s]\n", cmd_used, arg_used);
 		if ((status = api->function(arg_used, session, stream)) != SWITCH_STATUS_SUCCESS) {
 			stream->write_function(stream, "COMMAND RETURNED ERROR!\n");
 		}
@@ -115,8 +117,9 @@ SWITCH_DECLARE(switch_status_t) kz_expand_api_execute(const char *cmd, const cha
 	return status;
 }
 
-
-SWITCH_DECLARE(char *) kz_event_expand_headers_check(switch_event_t *event, const char *in, switch_event_t *var_list, switch_event_t *api_list, uint32_t recur)
+SWITCH_DECLARE(char *)
+kz_event_expand_headers_check(switch_event_t *event, const char *in, switch_event_t *var_list, switch_event_t *api_list,
+							  uint32_t recur)
 {
 	char *p, *c = NULL;
 	char *data, *indup, *endof_indup;
@@ -128,17 +131,17 @@ SWITCH_DECLARE(char *) kz_event_expand_headers_check(switch_event_t *event, cons
 	char *gvar = NULL, *sb = NULL;
 
 	if (recur > 100) {
-		return (char *) in;
+		return (char *)in;
 	}
 
 	if (zstr(in)) {
-		return (char *) in;
+		return (char *)in;
 	}
 
 	nv = switch_string_var_check_const(in) || switch_string_has_escaped_data(in);
 
 	if (!nv) {
-		return (char *) in;
+		return (char *)in;
 	}
 
 	nv = 0;
@@ -236,7 +239,7 @@ SWITCH_DECLARE(char *) kz_event_expand_headers_check(switch_event_t *event, cons
 				p = e > endof_indup ? endof_indup : e;
 
 				vval = NULL;
-				for(sb = vname; sb && *sb; sb++) {
+				for (sb = vname; sb && *sb; sb++) {
 					if (*sb == ' ') {
 						vval = sb;
 						break;
@@ -278,7 +281,8 @@ SWITCH_DECLARE(char *) kz_event_expand_headers_check(switch_event_t *event, cons
 					char *ptr;
 					int idx = -1;
 
-					if ((expanded = kz_event_expand_headers_check(event, (char *) vname, var_list, api_list, recur+1)) == vname) {
+					if ((expanded = kz_event_expand_headers_check(event, (char *)vname, var_list, api_list,
+																  recur + 1)) == vname) {
 						expanded = NULL;
 					} else {
 						vname = expanded;
@@ -307,8 +311,8 @@ SWITCH_DECLARE(char *) kz_event_expand_headers_check(switch_event_t *event, cons
 							sub_val = "<Variable Expansion Permission Denied>";
 						}
 
-
-						if ((expanded_sub_val = kz_event_expand_headers_check(event, sub_val, var_list, api_list, recur+1)) == sub_val) {
+						if ((expanded_sub_val = kz_event_expand_headers_check(event, sub_val, var_list, api_list,
+																			  recur + 1)) == sub_val) {
 							expanded_sub_val = NULL;
 						} else {
 							sub_val = expanded_sub_val;
@@ -324,12 +328,12 @@ SWITCH_DECLARE(char *) kz_event_expand_headers_check(switch_event_t *event, cons
 
 						if (offset >= 0) {
 							sub_val += offset;
-						} else if ((size_t) abs(offset) <= strlen(sub_val)) {
+						} else if ((size_t)abs(offset) <= strlen(sub_val)) {
 							sub_val = cloned_sub_val + (strlen(cloned_sub_val) + offset);
 						}
 
-						if (ooffset > 0 && (size_t) ooffset < strlen(sub_val)) {
-							if ((ptr = (char *) sub_val + ooffset)) {
+						if (ooffset > 0 && (size_t)ooffset < strlen(sub_val)) {
+							if ((ptr = (char *)sub_val + ooffset)) {
 								*ptr = '\0';
 							}
 						}
@@ -340,23 +344,26 @@ SWITCH_DECLARE(char *) kz_event_expand_headers_check(switch_event_t *event, cons
 					char *expanded = NULL;
 					char *expanded_vname = NULL;
 
-					if ((expanded_vname = kz_event_expand_headers_check(event, (char *) vname, var_list, api_list, recur+1)) == vname) {
+					if ((expanded_vname = kz_event_expand_headers_check(event, (char *)vname, var_list, api_list,
+																		recur + 1)) == vname) {
 						expanded_vname = NULL;
 					} else {
 						vname = expanded_vname;
 					}
 
-					if ((expanded = kz_event_expand_headers_check(event, vval, var_list, api_list, recur+1)) == vval) {
+					if ((expanded = kz_event_expand_headers_check(event, vval, var_list, api_list, recur + 1)) ==
+						vval) {
 						expanded = NULL;
 					} else {
 						vval = expanded;
 					}
 
-					if (!switch_core_test_flag(SCF_API_EXPANSION) || (api_list && !switch_event_check_permission_list(api_list, vname))) {
+					if (!switch_core_test_flag(SCF_API_EXPANSION) ||
+						(api_list && !switch_event_check_permission_list(api_list, vname))) {
 						func_val = NULL;
 						sub_val = "<API execute Permission Denied>";
 					} else {
-						switch_stream_handle_t stream = { 0 };
+						switch_stream_handle_t stream = {0};
 
 						SWITCH_STANDARD_STREAM(stream);
 						stream.param_event = event;
@@ -459,7 +466,7 @@ SWITCH_DECLARE(char *) kz_expand_pool(switch_memory_pool_t *pool, const char *in
 	char *expanded;
 	char *dup = NULL;
 
-	if(!(expanded = kz_expand(in, NULL))) {
+	if (!(expanded = kz_expand(in, NULL))) {
 		return NULL;
 	}
 	dup = switch_core_strdup(pool, expanded);
@@ -471,23 +478,26 @@ SWITCH_DECLARE(char *) kz_expand_pool(switch_memory_pool_t *pool, const char *in
 	return dup;
 }
 
-char* kz_switch_event_get_first_of(switch_event_t *event, const char *list[])
+char *kz_switch_event_get_first_of(switch_event_t *event, const char *list[])
 {
 	switch_event_header_t *header = NULL;
 	int i = 0;
-	while(list[i] != NULL) {
-		if((header = switch_event_get_header_ptr(event, list[i])) != NULL)
+	while (list[i] != NULL) {
+		if ((header = switch_event_get_header_ptr(event, list[i])) != NULL) {
 			break;
+		}
 		i++;
 	}
-	if(header != NULL) {
+	if (header != NULL) {
 		return header->value;
 	} else {
 		return "nodomain";
 	}
 }
 
-SWITCH_DECLARE(switch_status_t) kz_switch_event_add_variable_name_printf(switch_event_t *event, switch_stack_t stack, const char *val, const char *fmt, ...)
+SWITCH_DECLARE(switch_status_t)
+kz_switch_event_add_variable_name_printf(switch_event_t *event, switch_stack_t stack, const char *val, const char *fmt,
+										 ...)
 {
 	int ret = 0;
 	char *varname;
@@ -495,7 +505,6 @@ SWITCH_DECLARE(switch_status_t) kz_switch_event_add_variable_name_printf(switch_
 	switch_status_t status = SWITCH_STATUS_SUCCESS;
 
 	switch_assert(event != NULL);
-
 
 	va_start(ap, fmt);
 	ret = switch_vasprintf(&varname, fmt, ap);
@@ -512,17 +521,18 @@ SWITCH_DECLARE(switch_status_t) kz_switch_event_add_variable_name_printf(switch_
 	return status;
 }
 
-SWITCH_DECLARE(switch_status_t) kz_expand_json_to_event(cJSON *json, switch_event_t *event, char * prefix)
+SWITCH_DECLARE(switch_status_t) kz_expand_json_to_event(cJSON *json, switch_event_t *event, char *prefix)
 {
-	char * fmt = switch_mprintf("%s%s%%s", prefix ? prefix : "", prefix ? "_" : "");
+	char *fmt = switch_mprintf("%s%s%%s", prefix ? prefix : "", prefix ? "_" : "");
 	if (event) {
 		cJSON *item = NULL;
 		char *response = NULL;
-		cJSON_ArrayForEach(item, json) {
+		cJSON_ArrayForEach(item, json)
+		{
 			if (item->type == cJSON_String) {
 				response = strdup(item->valuestring);
 			} else if (item->type == cJSON_Object) {
-				char * fmt1 = switch_mprintf(fmt, item->string);
+				char *fmt1 = switch_mprintf(fmt, item->string);
 				kz_expand_json_to_event(item, event, fmt1);
 				switch_safe_free(fmt1);
 				continue;
@@ -552,8 +562,8 @@ void kz_xml_process(switch_xml_t cfg)
 	for (xml_process = kz_xml_child(cfg, "X-PRE-PROCESS"); xml_process; xml_process = xml_process->next) {
 		const char *cmd = switch_xml_attr(xml_process, "cmd");
 		const char *data = switch_xml_attr(xml_process, "data");
-		if(cmd != NULL && !strcasecmp(cmd, "set") && data) {
-			char *name = (char *) data;
+		if (cmd != NULL && !strcasecmp(cmd, "set") && data) {
+			char *name = (char *)data;
 			char *val = strchr(name, '=');
 
 			if (val) {
@@ -572,7 +582,6 @@ void kz_xml_process(switch_xml_t cfg)
 			}
 		}
 	}
-
 }
 
 void kz_event_decode(switch_event_t *event)
@@ -582,7 +591,7 @@ void kz_event_decode(switch_event_t *event)
 	for (hp = event->headers; hp; hp = hp->next) {
 		if (strncmp(hp->name, "_json_", 6)) {
 			if (hp->idx) {
-				for(i = 0; i < hp->idx; i++) {
+				for (i = 0; i < hp->idx; i++) {
 					switch_url_decode(hp->array[i]);
 				}
 			} else {
@@ -592,12 +601,13 @@ void kz_event_decode(switch_event_t *event)
 	}
 }
 
-void kz_expand_headers(switch_event_t *resolver, switch_event_t *event) {
+void kz_expand_headers(switch_event_t *resolver, switch_event_t *event)
+{
 	switch_event_t *clone = NULL;
 	switch_event_header_t *header = NULL;
 	switch_event_create_plain(&clone, event->event_id);
 
-	for(header = event->headers; header; header = header->next) {
+	for (header = event->headers; header; header = header->next) {
 		char *expanded = kz_event_expand_headers(resolver, header->value);
 		if (expanded != header->value) {
 			switch_event_add_header_string(clone, SWITCH_STACK_BOTTOM, header->name, expanded);
@@ -608,7 +618,7 @@ void kz_expand_headers(switch_event_t *resolver, switch_event_t *event) {
 	/* we don't want to force unique headers
 	 * so we delete and then merge
 	 */
-	for(header = clone->headers; header; header = header->next) {
+	for (header = clone->headers; header; header = header->next) {
 		switch_event_del_header(event, header->name);
 	}
 
@@ -617,17 +627,20 @@ void kz_expand_headers(switch_event_t *resolver, switch_event_t *event) {
 	switch_event_destroy(&clone);
 }
 
-void kz_expand_headers_self(switch_event_t *event) {
+void kz_expand_headers_self(switch_event_t *event)
+{
 	kz_expand_headers(event, event);
 }
 
-char * kz_expand_vars(char *xml_str) {
+char *kz_expand_vars(char *xml_str)
+{
 	return kz_expand_vars_pool(xml_str, NULL);
 }
 
-char * kz_expand_vars_pool(char *xml_str, switch_memory_pool_t *pool) {
+char *kz_expand_vars_pool(char *xml_str, switch_memory_pool_t *pool)
+{
 	char *var, *val;
-	char *rp = xml_str; /* read pointer */
+	char *rp = xml_str;	  /* read pointer */
 	char *ep, *wp, *buff; /* end pointer, write pointer, write buffer */
 
 	if (!(strstr(xml_str, "$${"))) {
@@ -648,10 +661,10 @@ char * kz_expand_vars_pool(char *xml_str, switch_memory_pool_t *pool) {
 				*e++ = '\0';
 				rp = e;
 
-				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "trying to expand %s \n", var);
+				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Trying to expand %s \n", var);
 				if ((val = switch_core_get_variable_dup(var))) {
 					char *p;
-					switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "expanded %s to %s\n", var, val);
+					switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Expanded %s to %s\n", var, val);
 					for (p = val; p && *p && wp <= ep; p++) {
 						*wp++ = *p;
 					}
@@ -666,18 +679,17 @@ char * kz_expand_vars_pool(char *xml_str, switch_memory_pool_t *pool) {
 
 	*wp++ = '\0';
 
-	if(pool) {
-		char * ret = switch_core_strdup(pool, buff);
+	if (pool) {
+		char *ret = switch_core_strdup(pool, buff);
 		switch_safe_free(buff);
 		return ret;
 	} else {
 		switch_safe_free(xml_str);
 		return buff;
 	}
-
 }
 
-switch_status_t kz_json_api(const char * command, cJSON *args, cJSON **res)
+switch_status_t kz_json_api(const char *command, cJSON *args, cJSON **res)
 {
 	switch_status_t status = SWITCH_STATUS_SUCCESS;
 	cJSON *req = cJSON_CreateObject();
@@ -687,14 +699,3 @@ switch_status_t kz_json_api(const char * command, cJSON *args, cJSON **res)
 	cJSON_Delete(req);
 	return status;
 }
-
-/* For Emacs:
- * Local Variables:
- * mode:c
- * indent-tabs-mode:t
- * tab-width:4
- * c-basic-offset:4
- * End:
- * For VIM:
- * vim:set softtabstop=4 shiftwidth=4 tabstop=4:
- */

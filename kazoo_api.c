@@ -30,6 +30,7 @@
  * mod_kazoo.c -- Socket Controlled Event Handler
  *
  */
+
 #include "mod_kazoo.h"
 
 #define KAZOO_DESC "kazoo information"
@@ -46,24 +47,21 @@
 #define API_NODE_OPTION_LEGACY 2
 #define API_NODE_OPTION_MAX 99
 
-static const char *node_runtime_options[] = {
-		"event-stream-framing",
-		"event-stream-keepalive",
-		"enable-legacy",
-		NULL
-};
+static const char *node_runtime_options[] = {"event-stream-framing", "event-stream-keepalive", "enable-legacy", NULL};
 
-static int api_find_node_option(char *option) {
+static int api_find_node_option(char *option)
+{
 	int i;
-	for(i = 0; node_runtime_options[i] != NULL; i++) {
-		if(!strcasecmp(option, node_runtime_options[i])) {
+	for (i = 0; node_runtime_options[i] != NULL; i++) {
+		if (!strcasecmp(option, node_runtime_options[i])) {
 			return i;
 		}
 	}
 	return API_NODE_OPTION_MAX;
 }
 
-static switch_status_t api_get_node_option(ei_node_t *ei_node, switch_stream_handle_t *stream, char *arg) {
+static switch_status_t api_get_node_option(ei_node_t *ei_node, switch_stream_handle_t *stream, char *arg)
+{
 	int option = api_find_node_option(arg);
 	switch_status_t ret = SWITCH_STATUS_SUCCESS;
 	switch (option) {
@@ -88,7 +86,8 @@ static switch_status_t api_get_node_option(ei_node_t *ei_node, switch_stream_han
 	return ret;
 }
 
-static switch_status_t api_set_node_option(ei_node_t *ei_node, switch_stream_handle_t *stream, char *name, char *value) {
+static switch_status_t api_set_node_option(ei_node_t *ei_node, switch_stream_handle_t *stream, char *name, char *value)
+{
 	int option = api_find_node_option(name);
 	short val;
 	switch_status_t ret = SWITCH_STATUS_SUCCESS;
@@ -124,7 +123,8 @@ static switch_status_t api_set_node_option(ei_node_t *ei_node, switch_stream_han
 	return ret;
 }
 
-static switch_status_t api_erlang_status(switch_stream_handle_t *stream) {
+static switch_status_t api_erlang_status(switch_stream_handle_t *stream)
+{
 	switch_sockaddr_t *sa;
 	uint16_t port;
 	char ipbuf[48];
@@ -134,11 +134,13 @@ static switch_status_t api_erlang_status(switch_stream_handle_t *stream) {
 	switch_socket_addr_get(&sa, SWITCH_FALSE, kazoo_globals.acceptor);
 
 	port = switch_sockaddr_get_port(sa);
-	ip_addr = switch_get_addr(ipbuf, sizeof (ipbuf), sa);
+	ip_addr = switch_get_addr(ipbuf, sizeof(ipbuf), sa);
 
 	stream->write_function(stream, "Running %s\n", VERSION);
-	stream->write_function(stream, "Listening for new Erlang connections on %s:%u with cookie %s\n", ip_addr, port, kazoo_globals.ei_cookie);
-	stream->write_function(stream, "Registered as Erlang node %s, visible as %s\n", kazoo_globals.ei_cnode.thisnodename, kazoo_globals.ei_cnode.thisalivename);
+	stream->write_function(stream, "Listening for new Erlang connections on %s:%u with cookie %s\n", ip_addr, port,
+						   kazoo_globals.ei_cookie);
+	stream->write_function(stream, "Registered as Erlang node %s, visible as %s\n", kazoo_globals.ei_cnode.thisnodename,
+						   kazoo_globals.ei_cnode.thisalivename);
 
 	if (kazoo_globals.ei_compat_rel) {
 		stream->write_function(stream, "Using Erlang compatibility mode: %d\n", kazoo_globals.ei_compat_rel);
@@ -150,7 +152,7 @@ static switch_status_t api_erlang_status(switch_stream_handle_t *stream) {
 		stream->write_function(stream, "No erlang nodes connected\n");
 	} else {
 		stream->write_function(stream, "Connected to:\n");
-		while(ei_node != NULL) {
+		while (ei_node != NULL) {
 			unsigned int year, day, hour, min, sec, delta;
 
 			delta = (switch_micro_time_now() - ei_node->created_time) / 1000000;
@@ -159,8 +161,9 @@ static switch_status_t api_erlang_status(switch_stream_handle_t *stream) {
 			hour = delta / 3600 % 24;
 			day = delta / 86400 % 7;
 			year = delta / 31556926 % 12;
-			stream->write_function(stream, "  %s (%s:%d) up %d years, %d days, %d hours, %d minutes, %d seconds\n"
-								   ,ei_node->peer_nodename, ei_node->remote_ip, ei_node->remote_port, year, day, hour, min, sec);
+			stream->write_function(stream, "  %s (%s:%d) up %d years, %d days, %d hours, %d minutes, %d seconds\n",
+								   ei_node->peer_nodename, ei_node->remote_ip, ei_node->remote_port, year, day, hour,
+								   min, sec);
 			ei_node = ei_node->next;
 		}
 	}
@@ -169,12 +172,14 @@ static switch_status_t api_erlang_status(switch_stream_handle_t *stream) {
 	return SWITCH_STATUS_SUCCESS;
 }
 
-static switch_status_t api_erlang_event_filter(switch_stream_handle_t *stream) {
+static switch_status_t api_erlang_event_filter(switch_stream_handle_t *stream)
+{
 	switch_hash_index_t *hi = NULL;
 	int column = 0;
 	int idx = 0;
 
-	for (hi = (switch_hash_index_t *)switch_core_hash_first_iter(kazoo_globals.event_filter, hi); hi; hi = switch_core_hash_next(&hi)) {
+	for (hi = (switch_hash_index_t *)switch_core_hash_first_iter(kazoo_globals.event_filter, hi); hi;
+		 hi = switch_core_hash_next(&hi)) {
 		const void *key;
 		void *val;
 		switch_core_hash_this(hi, &key, NULL, &val);
@@ -189,7 +194,7 @@ static switch_status_t api_erlang_event_filter(switch_stream_handle_t *stream) {
 		stream->write_function(stream, "\n");
 	}
 
-	while(kazoo_globals.kazoo_var_prefixes[idx] != NULL) {
+	while (kazoo_globals.kazoo_var_prefixes[idx] != NULL) {
 		char var[100];
 		char *prefix = kazoo_globals.kazoo_var_prefixes[idx];
 		sprintf(var, "%s*", prefix);
@@ -197,16 +202,16 @@ static switch_status_t api_erlang_event_filter(switch_stream_handle_t *stream) {
 		idx++;
 	}
 
-
 	return SWITCH_STATUS_SUCCESS;
 }
 
-static switch_status_t api_erlang_nodes_list(switch_stream_handle_t *stream) {
+static switch_status_t api_erlang_nodes_list(switch_stream_handle_t *stream)
+{
 	ei_node_t *ei_node;
 
 	switch_thread_rwlock_rdlock(kazoo_globals.ei_nodes_lock);
 	ei_node = kazoo_globals.ei_nodes;
-	while(ei_node != NULL) {
+	while (ei_node != NULL) {
 		stream->write_function(stream, "%s (%s)\n", ei_node->peer_nodename, ei_node->remote_ip);
 		ei_node = ei_node->next;
 	}
@@ -215,13 +220,14 @@ static switch_status_t api_erlang_nodes_list(switch_stream_handle_t *stream) {
 	return SWITCH_STATUS_SUCCESS;
 }
 
-static switch_status_t api_erlang_nodes_count(switch_stream_handle_t *stream) {
+static switch_status_t api_erlang_nodes_count(switch_stream_handle_t *stream)
+{
 	ei_node_t *ei_node;
 	int count = 0;
 
 	switch_thread_rwlock_rdlock(kazoo_globals.ei_nodes_lock);
 	ei_node = kazoo_globals.ei_nodes;
-	while(ei_node != NULL) {
+	while (ei_node != NULL) {
 		count++;
 		ei_node = ei_node->next;
 	}
@@ -232,14 +238,16 @@ static switch_status_t api_erlang_nodes_count(switch_stream_handle_t *stream) {
 	return SWITCH_STATUS_SUCCESS;
 }
 
-static switch_status_t api_complete_erlang_node(const char *line, const char *cursor, switch_console_callback_match_t **matches) {
+static switch_status_t api_complete_erlang_node(const char *line, const char *cursor,
+												switch_console_callback_match_t **matches)
+{
 	switch_console_callback_match_t *my_matches = NULL;
 	switch_status_t status = SWITCH_STATUS_FALSE;
 	ei_node_t *ei_node;
 
 	switch_thread_rwlock_rdlock(kazoo_globals.ei_nodes_lock);
 	ei_node = kazoo_globals.ei_nodes;
-	while(ei_node != NULL) {
+	while (ei_node != NULL) {
 		switch_console_push_match(&my_matches, ei_node->peer_nodename);
 		ei_node = ei_node->next;
 	}
@@ -253,7 +261,8 @@ static switch_status_t api_complete_erlang_node(const char *line, const char *cu
 	return status;
 }
 
-static switch_status_t handle_node_api_event_stream(ei_event_stream_t *event_stream, switch_stream_handle_t *stream) {
+static switch_status_t handle_node_api_event_stream(ei_event_stream_t *event_stream, switch_stream_handle_t *stream)
+{
 	ei_event_binding_t *binding;
 	int column = 0;
 
@@ -266,14 +275,13 @@ static switch_status_t handle_node_api_event_stream(ei_event_stream_t *event_str
 
 		switch_socket_addr_get(&sa, SWITCH_TRUE, event_stream->acceptor);
 		port = switch_sockaddr_get_port(sa);
-		ip_addr = switch_get_addr(ipbuf, sizeof (ipbuf), sa);
+		ip_addr = switch_get_addr(ipbuf, sizeof(ipbuf), sa);
 
 		if (zstr(ip_addr)) {
 			ip_addr = kazoo_globals.ip;
 		}
 
-		stream->write_function(stream, "%s:%d -> disconnected\n"
-							   ,ip_addr, port);
+		stream->write_function(stream, "%s:%d -> disconnected\n", ip_addr, port);
 	} else {
 		unsigned int year, day, hour, min, sec, delta;
 
@@ -284,14 +292,13 @@ static switch_status_t handle_node_api_event_stream(ei_event_stream_t *event_str
 		day = delta / 86400 % 7;
 		year = delta / 31556926 % 12;
 
-		stream->write_function(stream, "%s:%d -> %s:%d for %d years, %d days, %d hours, %d minutes, %d seconds\n"
-							   ,event_stream->local_ip, event_stream->local_port
-							   ,event_stream->remote_ip, event_stream->remote_port
-							   ,year, day, hour, min, sec);
+		stream->write_function(stream, "%s:%d -> %s:%d for %d years, %d days, %d hours, %d minutes, %d seconds\n",
+							   event_stream->local_ip, event_stream->local_port, event_stream->remote_ip,
+							   event_stream->remote_port, year, day, hour, min, sec);
 	}
 
 	binding = event_stream->bindings;
-	while(binding != NULL) {
+	while (binding != NULL) {
 		if (binding->type == SWITCH_EVENT_CUSTOM) {
 			stream->write_function(stream, "CUSTOM %-43s", binding->subclass_name);
 		} else {
@@ -316,12 +323,13 @@ static switch_status_t handle_node_api_event_stream(ei_event_stream_t *event_str
 	return SWITCH_STATUS_SUCCESS;
 }
 
-static switch_status_t handle_node_api_event_streams(ei_node_t *ei_node, switch_stream_handle_t *stream) {
+static switch_status_t handle_node_api_event_streams(ei_node_t *ei_node, switch_stream_handle_t *stream)
+{
 	ei_event_stream_t *event_stream;
 
 	switch_mutex_lock(ei_node->event_streams_mutex);
 	event_stream = ei_node->event_streams;
-	while(event_stream != NULL) {
+	while (event_stream != NULL) {
 		handle_node_api_event_stream(event_stream, stream);
 		event_stream = event_stream->next;
 	}
@@ -330,7 +338,8 @@ static switch_status_t handle_node_api_event_streams(ei_node_t *ei_node, switch_
 	return SWITCH_STATUS_SUCCESS;
 }
 
-static switch_status_t handle_node_api_command(ei_node_t *ei_node, switch_stream_handle_t *stream, uint32_t command) {
+static switch_status_t handle_node_api_command(ei_node_t *ei_node, switch_stream_handle_t *stream, uint32_t command)
+{
 	unsigned int year, day, hour, min, sec, delta;
 
 	switch (command) {
@@ -346,7 +355,8 @@ static switch_status_t handle_node_api_command(ei_node_t *ei_node, switch_stream
 		day = delta / 86400 % 7;
 		year = delta / 31556926 % 12;
 
-		stream->write_function(stream, "Uptime           %d years, %d days, %d hours, %d minutes, %d seconds\n", year, day, hour, min, sec);
+		stream->write_function(stream, "Uptime           %d years, %d days, %d hours, %d minutes, %d seconds\n", year,
+							   day, hour, min, sec);
 		stream->write_function(stream, "Local Address    %s:%d\n", ei_node->local_ip, ei_node->local_port);
 		stream->write_function(stream, "Remote Address   %s:%d\n", ei_node->remote_ip, ei_node->remote_port);
 		break;
@@ -363,12 +373,13 @@ static switch_status_t handle_node_api_command(ei_node_t *ei_node, switch_stream
 	return SWITCH_STATUS_SUCCESS;
 }
 
-static switch_status_t api_erlang_node_command(switch_stream_handle_t *stream, const char *nodename, uint32_t command) {
+static switch_status_t api_erlang_node_command(switch_stream_handle_t *stream, const char *nodename, uint32_t command)
+{
 	ei_node_t *ei_node;
 
 	switch_thread_rwlock_rdlock(kazoo_globals.ei_nodes_lock);
 	ei_node = kazoo_globals.ei_nodes;
-	while(ei_node != NULL) {
+	while (ei_node != NULL) {
 		int length = strlen(ei_node->peer_nodename);
 
 		if (!strncmp(ei_node->peer_nodename, nodename, length)) {
@@ -384,7 +395,9 @@ static switch_status_t api_erlang_node_command(switch_stream_handle_t *stream, c
 	return SWITCH_STATUS_NOTFOUND;
 }
 
-static switch_status_t handle_node_api_command_arg(ei_node_t *ei_node, switch_stream_handle_t *stream, uint32_t command, char *arg) {
+static switch_status_t handle_node_api_command_arg(ei_node_t *ei_node, switch_stream_handle_t *stream, uint32_t command,
+												   char *arg)
+{
 
 	switch (command) {
 	case API_COMMAND_OPTION:
@@ -397,7 +410,9 @@ static switch_status_t handle_node_api_command_arg(ei_node_t *ei_node, switch_st
 	return SWITCH_STATUS_NOTFOUND;
 }
 
-static switch_status_t handle_node_api_command_args(ei_node_t *ei_node, switch_stream_handle_t *stream, uint32_t command, int argc, char *argv[]) {
+static switch_status_t handle_node_api_command_args(ei_node_t *ei_node, switch_stream_handle_t *stream,
+													uint32_t command, int argc, char *argv[])
+{
 
 	switch (command) {
 	case API_COMMAND_OPTION:
@@ -410,19 +425,21 @@ static switch_status_t handle_node_api_command_args(ei_node_t *ei_node, switch_s
 	return SWITCH_STATUS_NOTFOUND;
 }
 
-static switch_status_t api_erlang_node_command_arg(switch_stream_handle_t *stream, const char *nodename, uint32_t command, char *arg) {
+static switch_status_t api_erlang_node_command_arg(switch_stream_handle_t *stream, const char *nodename,
+												   uint32_t command, char *arg)
+{
 	ei_node_t *ei_node;
 	switch_status_t ret = SWITCH_STATUS_NOTFOUND;
 
 	switch_thread_rwlock_rdlock(kazoo_globals.ei_nodes_lock);
 	ei_node = kazoo_globals.ei_nodes;
-	while(ei_node != NULL) {
+	while (ei_node != NULL) {
 		int length = strlen(ei_node->peer_nodename);
 
 		if (!strncmp(ei_node->peer_nodename, nodename, length)) {
 			ret = handle_node_api_command_arg(ei_node, stream, command, arg);
 			switch_thread_rwlock_unlock(kazoo_globals.ei_nodes_lock);
-			return ret ;
+			return ret;
 		}
 
 		ei_node = ei_node->next;
@@ -432,13 +449,15 @@ static switch_status_t api_erlang_node_command_arg(switch_stream_handle_t *strea
 	return ret;
 }
 
-static switch_status_t api_erlang_node_command_args(switch_stream_handle_t *stream, const char *nodename, uint32_t command, int argc, char *argv[]) {
+static switch_status_t api_erlang_node_command_args(switch_stream_handle_t *stream, const char *nodename,
+													uint32_t command, int argc, char *argv[])
+{
 	ei_node_t *ei_node;
 	switch_status_t ret = SWITCH_STATUS_NOTFOUND;
 
 	switch_thread_rwlock_rdlock(kazoo_globals.ei_nodes_lock);
 	ei_node = kazoo_globals.ei_nodes;
-	while(ei_node != NULL) {
+	while (ei_node != NULL) {
 		int length = strlen(ei_node->peer_nodename);
 
 		if (!strncmp(ei_node->peer_nodename, nodename, length)) {
@@ -456,21 +475,25 @@ static switch_status_t api_erlang_node_command_args(switch_stream_handle_t *stre
 
 SWITCH_STANDARD_API(exec_api_cmd)
 {
-	char *argv[1024] = { 0 };
+	char *argv[1024] = {0};
 	int unknown_command = 1, argc = 0;
 	char *mycmd = NULL;
 
-	const char *usage_string = "USAGE:\n"
-		"--------------------------------------------------------------------------------------------------------------------\n"
+	const char *usage_string =
+		"USAGE:\n"
+		"--------------------------------------------------------------------------------------------------------------"
+		"------\n"
 		"erlang status                            - provides an overview of the current status\n"
 		"erlang event_filter                      - lists the event headers that will be sent to Erlang nodes\n"
 		"erlang nodes list                        - lists connected Erlang nodes (usefull for monitoring tools)\n"
-		"erlang nodes count                       - provides a count of connected Erlang nodes (usefull for monitoring tools)\n"
+		"erlang nodes count                       - provides a count of connected Erlang nodes (usefull for monitoring "
+		"tools)\n"
 		"erlang node <node_name> disconnect       - disconnects an Erlang node\n"
 		"erlang node <node_name> connection       - Shows the connection info\n"
 		"erlang node <node_name> event_streams    - lists the event streams for an Erlang node\n"
 		"erlang node <node_name> fetch_bindings   - lists the XML fetch bindings for an Erlang node\n"
-		"---------------------------------------------------------------------------------------------------------------------\n";
+		"--------------------------------------------------------------------------------------------------------------"
+		"-------\n";
 
 	if (zstr(cmd)) {
 		stream->write_function(stream, "%s", usage_string);
@@ -522,10 +545,11 @@ SWITCH_STANDARD_API(exec_api_cmd)
 			api_erlang_node_command(stream, argv[1], API_COMMAND_BINDINGS);
 		} else if (!strncmp(argv[2], "option", 7) && !zstr(argv[3])) {
 			unknown_command = 0;
-			if(argc > 4 && !zstr(argv[4]))
+			if (argc > 4 && !zstr(argv[4])) {
 				api_erlang_node_command_args(stream, argv[1], API_COMMAND_OPTION, argc - 3, &argv[3]);
-			else
+			} else {
 				api_erlang_node_command_arg(stream, argv[1], API_COMMAND_OPTION, argv[3]);
+			}
 		}
 	}
 
@@ -550,24 +574,10 @@ void add_cli_api(switch_loadable_module_interface_t **module_interface)
 	switch_console_set_complete("add erlang node ::erlang::node event_streams");
 	switch_console_set_complete("add erlang node ::erlang::node fetch_bindings");
 	switch_console_add_complete_func("::erlang::node", api_complete_erlang_node);
-
 }
 
 void remove_cli_api()
 {
 	switch_console_set_complete("del erlang");
 	switch_console_del_complete_func("::erlang::node");
-
 }
-
-
-/* For Emacs:
- * Local Variables:
- * mode:c
- * indent-tabs-mode:t
- * tab-width:4
- * c-basic-offset:4
- * End:
- * For VIM:
- * vim:set softtabstop=4 shiftwidth=4 tabstop=4:
- */

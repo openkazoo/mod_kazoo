@@ -28,34 +28,31 @@
  * mod_hacks.c -- hacks with state handlers
  *
  */
+
 #include "mod_kazoo.h"
 
-static char *TWEAK_NAMES[] = {
-	"interaction-id",
-	"export-vars",
-	"switch-uri",
-	"replaces-call-id",
-	"loopback-vars",
-	"caller-id",
-	"transfers",
-	"bridge",
-	"bridge-replaces-aleg",
-	"bridge-replaces-call-id",
-	"bridge-variables",
-	"restore-caller-id-on-blind-xfer"
-};
+static char *TWEAK_NAMES[] = {"interaction-id",
+							  "export-vars",
+							  "switch-uri",
+							  "replaces-call-id",
+							  "loopback-vars",
+							  "caller-id",
+							  "transfers",
+							  "bridge",
+							  "bridge-replaces-aleg",
+							  "bridge-replaces-call-id",
+							  "bridge-variables",
+							  "restore-caller-id-on-blind-xfer"};
 
-static const char *bridge_variables[] = {
-		"Call-Control-Queue",
-		"Call-Control-PID",
-		"Call-Control-Node",
-		INTERACTION_VARIABLE,
-		"ecallmgr_Ecallmgr-Node",
-		"sip_h_k-cid",
-		"Switch-URI",
-		"Switch-URL",
-		NULL
-};
+static const char *bridge_variables[] = {"Call-Control-Queue",
+										 "Call-Control-PID",
+										 "Call-Control-Node",
+										 INTERACTION_VARIABLE,
+										 "ecallmgr_Ecallmgr-Node",
+										 "sip_h_k-cid",
+										 "Switch-URI",
+										 "Switch-URL",
+										 NULL};
 
 static switch_status_t kz_tweaks_signal_bridge_on_hangup(switch_core_session_t *session)
 {
@@ -64,10 +61,12 @@ static switch_status_t kz_tweaks_signal_bridge_on_hangup(switch_core_session_t *
 
 	const char *peer_uuid = switch_channel_get_variable(channel, "Bridge-B-Unique-ID");
 
-	switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG, "tweak signal bridge on hangup: %s , %s\n", switch_core_session_get_uuid(session), peer_uuid);
+	switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG, "Tweak signal bridge on hangup: %s , %s\n",
+					  switch_core_session_get_uuid(session), peer_uuid);
 
 	if (switch_event_create(&my_event, SWITCH_EVENT_CHANNEL_UNBRIDGE) == SWITCH_STATUS_SUCCESS) {
-		switch_event_add_header_string(my_event, SWITCH_STACK_BOTTOM, "Bridge-A-Unique-ID", switch_core_session_get_uuid(session));
+		switch_event_add_header_string(my_event, SWITCH_STACK_BOTTOM, "Bridge-A-Unique-ID",
+									   switch_core_session_get_uuid(session));
 		switch_event_add_header_string(my_event, SWITCH_STACK_BOTTOM, "Bridge-B-Unique-ID", peer_uuid);
 		switch_channel_event_set_data(channel, my_event);
 		switch_event_fire(&my_event);
@@ -88,8 +87,7 @@ static const switch_state_handler_table_t kz_tweaks_signal_bridge_state_handlers
 	/*.on_reset */ NULL,
 	/*.on_park */ NULL,
 	/*.on_reporting */ NULL,
-	/*.on_destroy */ NULL
-};
+	/*.on_destroy */ NULL};
 
 static void kz_tweaks_handle_bridge_variables(switch_event_t *event)
 {
@@ -99,25 +97,30 @@ static void kz_tweaks_handle_bridge_variables(switch_event_t *event)
 	const char *reentry = switch_event_get_header(event, "Bridge-Event-Processed");
 	int i;
 
-	if (!kz_test_tweak(KZ_TWEAK_BRIDGE_VARIABLES)) return;
+	if (!kz_test_tweak(KZ_TWEAK_BRIDGE_VARIABLES)) {
+		return;
+	}
 
-	if(reentry) return;
+	if (reentry) {
+		return;
+	}
 
-	switch_log_printf(SWITCH_CHANNEL_UUID_LOG(a_leg), SWITCH_LOG_DEBUG, "tweak bridge event handler: variables : %s , %s\n", a_leg, b_leg);
+	switch_log_printf(SWITCH_CHANNEL_UUID_LOG(a_leg), SWITCH_LOG_DEBUG,
+					  "Tweak bridge event handler: variables: %s , %s\n", a_leg, b_leg);
 
 	if (a_leg && (a_session = switch_core_session_locate(a_leg)) != NULL) {
 		switch_channel_t *a_channel = switch_core_session_get_channel(a_session);
 		switch_channel_timetable_t *a_times = switch_channel_get_timetable(a_channel);
-		if(b_leg && (b_session = switch_core_session_locate(b_leg)) != NULL) {
+		if (b_leg && (b_session = switch_core_session_locate(b_leg)) != NULL) {
 			switch_channel_t *b_channel = switch_core_session_get_channel(b_session);
 			switch_channel_timetable_t *b_times = switch_channel_get_timetable(b_channel);
 			if (a_times->created <= b_times->created) {
-				for(i = 0; bridge_variables[i] != NULL; i++) {
+				for (i = 0; bridge_variables[i] != NULL; i++) {
 					const char *val = switch_channel_get_variable_dup(a_channel, bridge_variables[i], SWITCH_FALSE, -1);
 					switch_channel_set_variable(b_channel, bridge_variables[i], val);
 				}
 			} else {
-				for(i = 0; bridge_variables[i] != NULL; i++) {
+				for (i = 0; bridge_variables[i] != NULL; i++) {
 					const char *val = switch_channel_get_variable_dup(b_channel, bridge_variables[i], SWITCH_FALSE, -1);
 					switch_channel_set_variable(a_channel, bridge_variables[i], val);
 				}
@@ -126,7 +129,7 @@ static void kz_tweaks_handle_bridge_variables(switch_event_t *event)
 		}
 		switch_core_session_rwunlock(a_session);
 	} else {
-		switch_log_printf(SWITCH_CHANNEL_UUID_LOG(a_leg), SWITCH_LOG_DEBUG1, "NOT FOUND : %s\n", a_leg);
+		switch_log_printf(SWITCH_CHANNEL_UUID_LOG(a_leg), SWITCH_LOG_DEBUG1, "Not found: %s\n", a_leg);
 	}
 }
 
@@ -134,21 +137,26 @@ static void kz_tweaks_handle_bridge_replaces_call_id(switch_event_t *event)
 {
 	switch_event_t *my_event;
 
-	const char *replaced_call_id =	switch_event_get_header(event, "variable_sip_replaces_call_id");
+	const char *replaced_call_id = switch_event_get_header(event, "variable_sip_replaces_call_id");
 	const char *peer_uuid = switch_event_get_header(event, "Unique-ID");
 	const char *reentry = switch_event_get_header(event, "Bridge-Event-Processed");
 
-	if (!kz_test_tweak(KZ_TWEAK_BRIDGE_REPLACES_CALL_ID)) return;
+	if (!kz_test_tweak(KZ_TWEAK_BRIDGE_REPLACES_CALL_ID)) {
+		return;
+	}
 
-	if(reentry) return;
+	if (reentry) {
+		return;
+	}
 
-	if(replaced_call_id) {
+	if (replaced_call_id) {
 		switch_core_session_t *call_session = NULL;
 		const char *call_id = switch_event_get_header(event, "Bridge-B-Unique-ID");
 		if (call_id && (call_session = switch_core_session_locate(call_id)) != NULL) {
 			switch_channel_t *call_channel = switch_core_session_get_channel(call_session);
 			if (switch_event_create(&my_event, SWITCH_EVENT_CHANNEL_BRIDGE) == SWITCH_STATUS_SUCCESS) {
-				switch_event_add_header_string(my_event, SWITCH_STACK_BOTTOM, "Bridge-A-Unique-ID", switch_core_session_get_uuid(call_session));
+				switch_event_add_header_string(my_event, SWITCH_STACK_BOTTOM, "Bridge-A-Unique-ID",
+											   switch_core_session_get_uuid(call_session));
 				switch_event_add_header_string(my_event, SWITCH_STACK_BOTTOM, "Bridge-B-Unique-ID", peer_uuid);
 				switch_event_add_header_string(my_event, SWITCH_STACK_BOTTOM, "Bridge-Event-Processed", "true");
 				switch_channel_event_set_data(call_channel, my_event);
@@ -158,14 +166,16 @@ static void kz_tweaks_handle_bridge_replaces_call_id(switch_event_t *event)
 			switch_channel_add_state_handler(call_channel, &kz_tweaks_signal_bridge_state_handlers);
 			switch_core_session_rwunlock(call_session);
 		} else {
-			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG1, "NOT FOUND : %s\n", call_id);
+			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG1, "Not found: %s\n", call_id);
 		}
 	}
 }
 
 static void kz_tweaks_channel_bridge_event_handler(switch_event_t *event)
 {
-	if (!kz_test_tweak(KZ_TWEAK_BRIDGE)) return;
+	if (!kz_test_tweak(KZ_TWEAK_BRIDGE)) {
+		return;
+	}
 
 	kz_tweaks_handle_bridge_replaces_call_id(event);
 	kz_tweaks_handle_bridge_variables(event);
@@ -178,9 +188,11 @@ static void kz_tweaks_channel_replaced_event_handler(switch_event_t *event)
 	const char *uuid = switch_event_get_header(event, "Unique-ID");
 	const char *replaced_by = switch_event_get_header(event, "att_xfer_replaced_by");
 
-	if (!kz_test_tweak(KZ_TWEAK_TRANSFERS)) return;
+	if (!kz_test_tweak(KZ_TWEAK_TRANSFERS)) {
+		return;
+	}
 
-	switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "REPLACED : %s , %s\n", uuid, replaced_by);
+	switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Replaced: %s , %s\n", uuid, replaced_by);
 }
 
 static void kz_tweaks_channel_intercepted_event_handler(switch_event_t *event)
@@ -188,9 +200,11 @@ static void kz_tweaks_channel_intercepted_event_handler(switch_event_t *event)
 	const char *uuid = switch_event_get_header(event, "Unique-ID");
 	const char *peer_uuid = switch_event_get_header(event, "intercepted_by");
 
-	if (!kz_test_tweak(KZ_TWEAK_TRANSFERS)) return;
+	if (!kz_test_tweak(KZ_TWEAK_TRANSFERS)) {
+		return;
+	}
 
-	switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "INTERCEPTED : %s => %s\n", uuid, peer_uuid);
+	switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Intercepted: %s => %s\n", uuid, peer_uuid);
 }
 
 static void kz_tweaks_channel_transferor_event_handler(switch_event_t *event)
@@ -207,19 +221,25 @@ static void kz_tweaks_channel_transferor_event_handler(switch_event_t *event)
 	const char *func = switch_event_get_header(event, "Event-Calling-Function");
 	const char *line = switch_event_get_header(event, "Event-Calling-Line-Number");
 
-	if (!kz_test_tweak(KZ_TWEAK_TRANSFERS)) return;
+	if (!kz_test_tweak(KZ_TWEAK_TRANSFERS)) {
+		return;
+	}
 
-	switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "TRANSFEROR : %s , %s , %s, %s, %s , %s , %s \n", uuid, orig_call_id, dest_peer_uuid, dest_call_id, file, func, line);
+	switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Transferor: %s , %s , %s, %s, %s , %s , %s \n", uuid,
+					  orig_call_id, dest_peer_uuid, dest_call_id, file, func, line);
 	if ((uuid_session = switch_core_session_locate(uuid)) != NULL) {
 		switch_channel_t *uuid_channel = switch_core_session_get_channel(uuid_session);
-		const char* interaction_id = switch_channel_get_variable_dup(uuid_channel, INTERACTION_VARIABLE, SWITCH_TRUE, -1);
+		const char *interaction_id =
+			switch_channel_get_variable_dup(uuid_channel, INTERACTION_VARIABLE, SWITCH_TRUE, -1);
 		// set to uuid & peer_uuid
-		if(interaction_id != NULL) {
+		if (interaction_id != NULL) {
 			switch_core_session_t *session = NULL;
-			if(dest_call_id && (session = switch_core_session_locate(dest_call_id)) != NULL) {
+			if (dest_call_id && (session = switch_core_session_locate(dest_call_id)) != NULL) {
 				switch_channel_t *channel = switch_core_session_get_channel(session);
-				const char* prv_interaction_id = switch_channel_get_variable_dup(channel, INTERACTION_VARIABLE, SWITCH_TRUE, -1);
-				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "LOCATING UUID PRV : %s : %s\n", prv_interaction_id, interaction_id);
+				const char *prv_interaction_id =
+					switch_channel_get_variable_dup(channel, INTERACTION_VARIABLE, SWITCH_TRUE, -1);
+				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Locating UUID PRV: %s: %s\n",
+								  prv_interaction_id, interaction_id);
 				switch_channel_set_variable(channel, INTERACTION_VARIABLE, interaction_id);
 				if (switch_event_create(&evt, SWITCH_EVENT_CHANNEL_DATA) == SWITCH_STATUS_SUCCESS) {
 					switch_channel_event_set_data(channel, evt);
@@ -227,12 +247,15 @@ static void kz_tweaks_channel_transferor_event_handler(switch_event_t *event)
 				}
 				switch_core_session_rwunlock(session);
 			} else {
-				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "TRANSFEROR NO UUID SESSION: %s , %s , %s \n", uuid, dest_call_id, dest_peer_uuid);
+				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Transferor no UUID session: %s , %s , %s \n",
+								  uuid, dest_call_id, dest_peer_uuid);
 			}
-			if(dest_peer_uuid && (session = switch_core_session_locate(dest_peer_uuid)) != NULL) {
+			if (dest_peer_uuid && (session = switch_core_session_locate(dest_peer_uuid)) != NULL) {
 				switch_channel_t *channel = switch_core_session_get_channel(session);
-				const char* prv_interaction_id = switch_channel_get_variable_dup(channel, INTERACTION_VARIABLE, SWITCH_TRUE, -1);
-				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "LOCATING PEER UUID PRV : %s : %s\n", prv_interaction_id, interaction_id);
+				const char *prv_interaction_id =
+					switch_channel_get_variable_dup(channel, INTERACTION_VARIABLE, SWITCH_TRUE, -1);
+				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Locating peer UUID PRV: %s: %s\n",
+								  prv_interaction_id, interaction_id);
 				switch_channel_set_variable(channel, INTERACTION_VARIABLE, interaction_id);
 				if (switch_event_create(&evt, SWITCH_EVENT_CHANNEL_DATA) == SWITCH_STATUS_SUCCESS) {
 					switch_channel_event_set_data(channel, evt);
@@ -240,12 +263,15 @@ static void kz_tweaks_channel_transferor_event_handler(switch_event_t *event)
 				}
 				switch_core_session_rwunlock(session);
 			} else {
-				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "TRANSFEROR NO PEER SESSION: %s , %s , %s \n", uuid, dest_call_id, dest_peer_uuid);
+				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Transferor no peer session: %s , %s , %s \n",
+								  uuid, dest_call_id, dest_peer_uuid);
 			}
-			if(orig_call_id && (session = switch_core_session_locate(orig_call_id)) != NULL) {
+			if (orig_call_id && (session = switch_core_session_locate(orig_call_id)) != NULL) {
 				switch_channel_t *channel = switch_core_session_get_channel(session);
-				const char* prv_interaction_id = switch_channel_get_variable_dup(channel, INTERACTION_VARIABLE, SWITCH_TRUE, -1);
-				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "LOCATING PEER UUID PRV : %s : %s\n", prv_interaction_id, interaction_id);
+				const char *prv_interaction_id =
+					switch_channel_get_variable_dup(channel, INTERACTION_VARIABLE, SWITCH_TRUE, -1);
+				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Locating peer UUID PRV: %s: %s\n",
+								  prv_interaction_id, interaction_id);
 				switch_channel_set_variable(channel, INTERACTION_VARIABLE, interaction_id);
 				if (switch_event_create(&evt, SWITCH_EVENT_CHANNEL_DATA) == SWITCH_STATUS_SUCCESS) {
 					switch_channel_event_set_data(channel, evt);
@@ -253,14 +279,16 @@ static void kz_tweaks_channel_transferor_event_handler(switch_event_t *event)
 				}
 				switch_core_session_rwunlock(session);
 			} else {
-				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "TRANSFEROR NO PEER SESSION: %s , %s , %s \n", uuid, dest_call_id, dest_peer_uuid);
+				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Transferor no peer session: %s , %s , %s \n",
+								  uuid, dest_call_id, dest_peer_uuid);
 			}
 		} else {
-			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "TRANSFEROR ID = NULL : %s , %s , %s \n", uuid, dest_call_id, dest_peer_uuid);
+			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Transferor ID = NULL: %s , %s , %s \n", uuid,
+							  dest_call_id, dest_peer_uuid);
 		}
 		switch_core_session_rwunlock(uuid_session);
 	} else {
-		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "SESSION NOT FOUND : %s\n", uuid);
+		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Session not found: %s\n", uuid);
 	}
 }
 
@@ -269,20 +297,21 @@ static void kz_tweaks_channel_transferee_event_handler(switch_event_t *event)
 	const char *uuid = switch_event_get_header(event, "Unique-ID");
 	const char *replaced_by_uuid = switch_event_get_header(event, "att_xfer_replaced_call_id");
 
-	if (!kz_test_tweak(KZ_TWEAK_TRANSFERS)) return;
+	if (!kz_test_tweak(KZ_TWEAK_TRANSFERS)) {
+		return;
+	}
 
-	switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "TRANSFEREE : %s replaced by %s\n", uuid, replaced_by_uuid);
+	switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Transferee: %s replaced by %s\n", uuid, replaced_by_uuid);
 }
 
 // END TRANSFERS
-
 
 static switch_status_t kz_tweaks_handle_loopback(switch_core_session_t *session)
 {
 	switch_channel_t *channel = switch_core_session_get_channel(session);
 	switch_channel_t *a_channel = NULL;
-	const char * loopback_leg = NULL;
-	const char * loopback_aleg = NULL;
+	const char *loopback_leg = NULL;
+	const char *loopback_aleg = NULL;
 	switch_core_session_t *a_session = NULL;
 	switch_event_t *event = NULL;
 	switch_event_header_t *header = NULL;
@@ -296,53 +325,59 @@ static switch_status_t kz_tweaks_handle_loopback(switch_core_session_t *session)
 	}
 
 	caller = switch_channel_get_caller_profile(channel);
-	if(strncmp(caller->source, "mod_loopback", 12))
+	if (strncmp(caller->source, "mod_loopback", 12)) {
 		return SWITCH_STATUS_SUCCESS;
+	}
 
-	if((loopback_leg = switch_channel_get_variable(channel, "loopback_leg")) == NULL)
+	if ((loopback_leg = switch_channel_get_variable(channel, "loopback_leg")) == NULL) {
 		return SWITCH_STATUS_SUCCESS;
+	}
 
-	if(strncmp(loopback_leg, "B", 1))
+	if (strncmp(loopback_leg, "B", 1)) {
 		return SWITCH_STATUS_SUCCESS;
+	}
 
 	switch_channel_get_variables(channel, &event);
 	switch_event_create_plain(&to_add, SWITCH_EVENT_CHANNEL_DATA);
 	switch_event_create_plain(&to_remove, SWITCH_EVENT_CHANNEL_DATA);
 
-	for(header = event->headers; header; header = header->next) {
-		if(!strncmp(header->name, "Export-Loopback-", 16)) {
-			kz_switch_event_add_variable_name_printf(to_add, SWITCH_STACK_BOTTOM, header->value, "%s", header->name+16);
+	for (header = event->headers; header; header = header->next) {
+		if (!strncmp(header->name, "Export-Loopback-", 16)) {
+			kz_switch_event_add_variable_name_printf(to_add, SWITCH_STACK_BOTTOM, header->value, "%s",
+													 header->name + 16);
 			switch_channel_set_variable(channel, header->name, NULL);
 			n++;
-		} else if(!strncmp(header->name, "sip_loopback_", 13)) {
-			kz_switch_event_add_variable_name_printf(to_add, SWITCH_STACK_BOTTOM, header->value, "sip_%s", header->name+13);
-		} else if(!strncmp(header->name, "ecallmgr_", 9)) {
+		} else if (!strncmp(header->name, "sip_loopback_", 13)) {
+			kz_switch_event_add_variable_name_printf(to_add, SWITCH_STACK_BOTTOM, header->value, "sip_%s",
+													 header->name + 13);
+		} else if (!strncmp(header->name, "ecallmgr_", 9)) {
 			switch_event_add_header_string(to_remove, SWITCH_STACK_BOTTOM, header->name, header->value);
 		}
 	}
-	if(n) {
-		for(header = to_remove->headers; header; header = header->next) {
+	if (n) {
+		for (header = to_remove->headers; header; header = header->next) {
 			switch_channel_set_variable(channel, header->name, NULL);
 		}
 	}
 
-	for(header = to_add->headers; header; header = header->next) {
+	for (header = to_add->headers; header; header = header->next) {
 		switch_channel_set_variable(channel, header->name, header->value);
 	}
 
 	// cleanup leg A
 	loopback_aleg = switch_channel_get_variable(channel, "other_loopback_leg_uuid");
-	if(loopback_aleg != NULL) {
-		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "found loopback a-leg uuid - %s\n", loopback_aleg);
+	if (loopback_aleg != NULL) {
+		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Found loopback a-leg uuid - %s\n", loopback_aleg);
 		if ((a_session = switch_core_session_locate(loopback_aleg))) {
 			a_channel = switch_core_session_get_channel(a_session);
-			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "found loopback session a - %s\n", loopback_aleg);
+			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Found loopback session a - %s\n", loopback_aleg);
 			switch_channel_del_variable_prefix(a_channel, "Export-Loopback-");
 		} else {
-			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Couldn't locate loopback session a - %s\n", loopback_aleg);
+			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Failed to locate loopback session a - %s\n",
+							  loopback_aleg);
 		}
 	} else {
-		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Couldn't find loopback a-leg uuid!\n");
+		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Failed to find loopback a-leg uuid\n");
 	}
 
 	/*
@@ -351,16 +386,19 @@ static switch_status_t kz_tweaks_handle_loopback(switch_core_session_t *session)
 	 */
 	if (kz_test_tweak(KZ_TWEAK_INTERACTION_ID)) {
 		if (a_channel) {
-			const char *interaction_id = switch_channel_get_variable_dup(a_channel, INTERACTION_VARIABLE, SWITCH_FALSE, -1);
-			const char *a_account_id  = switch_channel_get_variable_dup(a_channel, "ecallmgr_Account-ID", SWITCH_FALSE, -1);
-			const char *b_account_id  = switch_channel_get_variable_dup(channel, "ecallmgr_Account-ID", SWITCH_FALSE, -1);
+			const char *interaction_id =
+				switch_channel_get_variable_dup(a_channel, INTERACTION_VARIABLE, SWITCH_FALSE, -1);
+			const char *a_account_id =
+				switch_channel_get_variable_dup(a_channel, "ecallmgr_Account-ID", SWITCH_FALSE, -1);
+			const char *b_account_id =
+				switch_channel_get_variable_dup(channel, "ecallmgr_Account-ID", SWITCH_FALSE, -1);
 			if ((!a_account_id) || (!b_account_id) || (!strcmp(a_account_id, b_account_id))) {
 				switch_channel_set_variable(channel, INTERACTION_VARIABLE, interaction_id);
 			}
 		}
 	}
 
-	if (a_session){
+	if (a_session) {
 		switch_core_session_rwunlock(a_session);
 	}
 	switch_event_destroy(&event);
@@ -368,22 +406,21 @@ static switch_status_t kz_tweaks_handle_loopback(switch_core_session_t *session)
 	switch_event_destroy(&to_remove);
 
 	return SWITCH_STATUS_SUCCESS;
-
 }
 
 static void kz_tweaks_handle_caller_id(switch_core_session_t *session)
 {
 	if (kz_test_tweak(KZ_TWEAK_CALLER_ID)) {
 		switch_channel_t *channel = switch_core_session_get_channel(session);
-		switch_caller_profile_t* caller = switch_channel_get_caller_profile(channel);
-		switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG1, "CHECKING CALLER-ID\n");
+		switch_caller_profile_t *caller = switch_channel_get_caller_profile(channel);
+		switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG1, "Checking caller ID\n");
 		if (caller && switch_channel_direction(channel) == SWITCH_CALL_DIRECTION_INBOUND) {
-			const char* val = NULL;
-			if((val=switch_caller_get_field_by_name(caller, "Endpoint-Caller-ID-Name"))) {
+			const char *val = NULL;
+			if ((val = switch_caller_get_field_by_name(caller, "Endpoint-Caller-ID-Name"))) {
 				caller->caller_id_name = val;
 				caller->orig_caller_id_name = val;
 			}
-			if((val=switch_caller_get_field_by_name(caller, "Endpoint-Caller-ID-Number"))) {
+			if ((val = switch_caller_get_field_by_name(caller, "Endpoint-Caller-ID-Number"))) {
 				caller->caller_id_number = val;
 				caller->orig_caller_id_number = val;
 			}
@@ -400,9 +437,10 @@ static switch_status_t kz_tweaks_handle_nightmare_xfer_interaction_id(switch_cor
 		const char *core_uuid = switch_channel_get_variable(channel, "sip_h_X-FS-From-Core-UUID");
 		const char *partner_uuid = switch_channel_get_variable(channel, "sip_h_X-FS-Refer-Partner-UUID");
 		const char *interaction_id = switch_channel_get_variable(channel, "sip_h_X-FS-Call-Interaction-ID");
-		if(core_uuid && partner_uuid && replaced_call_id && interaction_id) {
+		if (core_uuid && partner_uuid && replaced_call_id && interaction_id) {
 			switch_channel_set_variable(channel, INTERACTION_VARIABLE, interaction_id);
-			switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG, "checking nightmare xfer tweak for %s\n", switch_channel_get_uuid(channel));
+			switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG,
+							  "checking nightmare xfer tweak for %s\n", switch_channel_get_uuid(channel));
 			if ((replace_session = switch_core_session_locate(replaced_call_id))) {
 				switch_channel_t *replaced_call_channel = switch_core_session_get_channel(replace_session);
 				switch_channel_set_variable(replaced_call_channel, INTERACTION_VARIABLE, interaction_id);
@@ -417,7 +455,6 @@ static switch_status_t kz_tweaks_handle_nightmare_xfer_interaction_id(switch_cor
 	}
 
 	return SWITCH_STATUS_SUCCESS;
-
 }
 
 static switch_status_t kz_tweaks_handle_replaces_call_id(switch_core_session_t *session)
@@ -428,14 +465,18 @@ static switch_status_t kz_tweaks_handle_replaces_call_id(switch_core_session_t *
 		switch_channel_t *channel = switch_core_session_get_channel(session);
 		const char *replaced_call_id = switch_channel_get_variable(channel, "sip_replaces_call_id");
 		const char *core_uuid = switch_channel_get_variable(channel, "sip_h_X-FS-From-Core-UUID");
-		if((!core_uuid) && replaced_call_id) {
-			switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_INFO, "checking replaces header tweak for %s\n", replaced_call_id);
+		if ((!core_uuid) && replaced_call_id) {
+			switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_INFO,
+							  "checking replaces header tweak for %s\n", replaced_call_id);
 			if ((replace_call_session = switch_core_session_locate(replaced_call_id))) {
 				switch_channel_t *replaced_call_channel = switch_core_session_get_channel(replace_call_session);
 				int i;
-				switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG, "setting bridge variables from %s to %s\n", replaced_call_id, switch_channel_get_uuid(channel));
-				for(i = 0; bridge_variables[i] != NULL; i++) {
-					const char *val = switch_channel_get_variable_dup(replaced_call_channel, bridge_variables[i], SWITCH_TRUE, -1);
+				switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG,
+								  "setting bridge variables from %s to %s\n", replaced_call_id,
+								  switch_channel_get_uuid(channel));
+				for (i = 0; bridge_variables[i] != NULL; i++) {
+					const char *val =
+						switch_channel_get_variable_dup(replaced_call_channel, bridge_variables[i], SWITCH_TRUE, -1);
 					switch_channel_set_variable(channel, bridge_variables[i], val);
 				}
 				if (switch_event_create(&event, SWITCH_EVENT_CHANNEL_DATA) == SWITCH_STATUS_SUCCESS) {
@@ -448,27 +489,25 @@ static switch_status_t kz_tweaks_handle_replaces_call_id(switch_core_session_t *
 	}
 
 	return SWITCH_STATUS_SUCCESS;
-
 }
-
 
 static switch_status_t kz_tweaks_handle_switch_uri(switch_core_session_t *session)
 {
 	switch_channel_t *channel = switch_core_session_get_channel(session);
 	if (kz_test_tweak(KZ_TWEAK_SWITCH_URI)) {
 		const char *profile_url = switch_channel_get_variable(channel, "sofia_profile_url");
-		if(profile_url) {
+		if (profile_url) {
 			int n = strcspn(profile_url, "@");
 			switch_channel_set_variable(channel, "Switch-URL", profile_url);
-			switch_channel_set_variable_printf(channel, "Switch-URI", "sip:%s", n > 0 ? profile_url + n + 1 : profile_url);
+			switch_channel_set_variable_printf(channel, "Switch-URI", "sip:%s",
+											   n > 0 ? profile_url + n + 1 : profile_url);
 		}
 	}
 
 	return SWITCH_STATUS_SUCCESS;
-
 }
 
-static char * kz_tweaks_new_interaction_id()
+static char *kz_tweaks_new_interaction_id()
 {
 	long int first = (switch_micro_time_now() / 1000000) + UNIX_EPOCH_IN_GREGORIAN;
 	char uuid_str[SWITCH_UUID_FORMATTED_LENGTH + 1];
@@ -482,19 +521,21 @@ static char * kz_tweaks_new_interaction_id()
 static void kz_tweaks_handle_interaction_id(switch_core_session_t *session)
 {
 	switch_channel_t *channel = switch_core_session_get_channel(session);
-	char * val = NULL;
+	char *val = NULL;
 	switch_core_session_t *peer_session = NULL;
-	const char* peer_interaction_id = NULL;
+	const char *peer_interaction_id = NULL;
 
 	if (kz_test_tweak(KZ_TWEAK_INTERACTION_ID)) {
 		val = kz_tweaks_new_interaction_id();
 		if (val) {
-			switch_channel_set_variable(channel, "Original-"INTERACTION_VARIABLE, val);
-			if(switch_core_session_get_partner(session, &peer_session) == SWITCH_STATUS_SUCCESS) {
+			switch_channel_set_variable(channel, "Original-" INTERACTION_VARIABLE, val);
+			if (switch_core_session_get_partner(session, &peer_session) == SWITCH_STATUS_SUCCESS) {
 				switch_channel_t *peer_channel = switch_core_session_get_channel(peer_session);
-				peer_interaction_id = switch_channel_get_variable_dup(peer_channel, INTERACTION_VARIABLE, SWITCH_FALSE, -1);
-				switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG, "PEER_SESSION => %s\n", peer_interaction_id);
-				if(peer_interaction_id) {
+				peer_interaction_id =
+					switch_channel_get_variable_dup(peer_channel, INTERACTION_VARIABLE, SWITCH_FALSE, -1);
+				switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG, "peer_session => %s\n",
+								  peer_interaction_id);
+				if (peer_interaction_id) {
 					switch_channel_set_variable(channel, INTERACTION_VARIABLE, peer_interaction_id);
 				}
 				switch_core_session_rwunlock(peer_session);
@@ -505,23 +546,26 @@ static void kz_tweaks_handle_interaction_id(switch_core_session_t *session)
 
 		switch_safe_free(val);
 	}
-
 }
 
-static switch_status_t kz_outgoing_channel(switch_core_session_t * session, switch_event_t * event, switch_caller_profile_t * cp, switch_core_session_t * peer_session, switch_originate_flag_t flag)
+static switch_status_t kz_outgoing_channel(switch_core_session_t *session, switch_event_t *event,
+										   switch_caller_profile_t *cp, switch_core_session_t *peer_session,
+										   switch_originate_flag_t flag)
 {
 	if (kz_test_tweak(KZ_TWEAK_INTERACTION_ID)) {
-		switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG, "GOT OUTGOING\n");
+		switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG, "Got outgoing\n");
 		if (peer_session) {
 			switch_channel_t *channel = switch_core_session_get_channel(session);
-			const char* interaction_id = switch_channel_get_variable_dup(channel, INTERACTION_VARIABLE, SWITCH_FALSE, -1);
+			const char *interaction_id =
+				switch_channel_get_variable_dup(channel, INTERACTION_VARIABLE, SWITCH_FALSE, -1);
 			switch_channel_t *peer_channel = switch_core_session_get_channel(peer_session);
-			switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG, "SESSION && PEER_SESSION => %s\n", interaction_id );
+			switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG, "Session and peer_session: %s\n",
+							  interaction_id);
 			if (interaction_id) {
 				switch_channel_set_variable(peer_channel, INTERACTION_VARIABLE, interaction_id);
 			}
 		} else {
-			switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG, "NO SESSION && PEER_SESSION\n");
+			switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG, "No session and peer_session\n");
 		}
 	}
 	return SWITCH_STATUS_SUCCESS;
@@ -539,7 +583,8 @@ static switch_status_t kz_tweaks_register_handle_blind_xfer(switch_core_session_
 static switch_status_t kz_tweaks_on_init(switch_core_session_t *session)
 {
 	switch_channel_t *channel = switch_core_session_get_channel(session);
-	switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG1, "checking tweaks for %s\n", switch_channel_get_uuid(channel));
+	switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG1, "Checking tweaks for %s\n",
+					  switch_channel_get_uuid(channel));
 	switch_channel_set_flag(channel, CF_VERBOSE_EVENTS);
 	switch_core_event_hook_add_outgoing_channel(session, kz_outgoing_channel);
 	kz_tweaks_handle_interaction_id(session);
@@ -565,21 +610,19 @@ static switch_state_handler_table_t kz_tweaks_state_handlers = {
 	/*.on_reset */ NULL,
 	/*.on_park */ NULL,
 	/*.on_reporting */ NULL,
-	/*.on_destroy */ NULL
-};
-
+	/*.on_destroy */ NULL};
 
 static void kz_tweaks_register_state_handlers()
 {
-/*
- * we may need two handlers
- * one with SSH_FLAG_PRE_EXEC
- * and another without it
- * mod_loopback tweaks needs post-init (SSH_FLAG_PRE_EXEC off)
- *
- * kz_tweaks_state_handlers.flags = SSH_FLAG_PRE_EXEC;
- *
- */
+	/*
+	 * we may need two handlers
+	 * one with SSH_FLAG_PRE_EXEC
+	 * and another without it
+	 * mod_loopback tweaks needs post-init (SSH_FLAG_PRE_EXEC off)
+	 *
+	 * kz_tweaks_state_handlers.flags = SSH_FLAG_PRE_EXEC;
+	 *
+	 */
 	switch_core_add_state_handler(&kz_tweaks_state_handlers);
 }
 
@@ -590,20 +633,25 @@ static void kz_tweaks_unregister_state_handlers()
 
 static void kz_tweaks_bind_events()
 {
-	if (switch_event_bind("kz_tweaks", SWITCH_EVENT_CHANNEL_BRIDGE, SWITCH_EVENT_SUBCLASS_ANY, kz_tweaks_channel_bridge_event_handler, NULL) != SWITCH_STATUS_SUCCESS) {
-	        switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Couldn't bind to channel_bridge event!\n");
+	if (switch_event_bind("kz_tweaks", SWITCH_EVENT_CHANNEL_BRIDGE, SWITCH_EVENT_SUBCLASS_ANY,
+						  kz_tweaks_channel_bridge_event_handler, NULL) != SWITCH_STATUS_SUCCESS) {
+		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Failed to bind to channel_bridge event\n");
 	}
-	if (switch_event_bind("kz_tweaks", SWITCH_EVENT_CUSTOM, "sofia::replaced", kz_tweaks_channel_replaced_event_handler, NULL) != SWITCH_STATUS_SUCCESS) {
-	        switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Couldn't bind to channel_bridge event!\n");
+	if (switch_event_bind("kz_tweaks", SWITCH_EVENT_CUSTOM, "sofia::replaced", kz_tweaks_channel_replaced_event_handler,
+						  NULL) != SWITCH_STATUS_SUCCESS) {
+		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Failed to bind to channel_bridge event\n");
 	}
-	if (switch_event_bind("kz_tweaks", SWITCH_EVENT_CUSTOM, "sofia::intercepted", kz_tweaks_channel_intercepted_event_handler, NULL) != SWITCH_STATUS_SUCCESS) {
-	        switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Couldn't bind to channel_bridge event!\n");
+	if (switch_event_bind("kz_tweaks", SWITCH_EVENT_CUSTOM, "sofia::intercepted",
+						  kz_tweaks_channel_intercepted_event_handler, NULL) != SWITCH_STATUS_SUCCESS) {
+		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Failed to bind to channel_bridge event\n");
 	}
-	if (switch_event_bind("kz_tweaks", SWITCH_EVENT_CUSTOM, "sofia::transferor", kz_tweaks_channel_transferor_event_handler, NULL) != SWITCH_STATUS_SUCCESS) {
-	        switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Couldn't bind to channel_bridge event!\n");
+	if (switch_event_bind("kz_tweaks", SWITCH_EVENT_CUSTOM, "sofia::transferor",
+						  kz_tweaks_channel_transferor_event_handler, NULL) != SWITCH_STATUS_SUCCESS) {
+		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Failed to bind to channel_bridge event\n");
 	}
-	if (switch_event_bind("kz_tweaks", SWITCH_EVENT_CUSTOM, "sofia::transferee", kz_tweaks_channel_transferee_event_handler, NULL) != SWITCH_STATUS_SUCCESS) {
-	        switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Couldn't bind to channel_bridge event!\n");
+	if (switch_event_bind("kz_tweaks", SWITCH_EVENT_CUSTOM, "sofia::transferee",
+						  kz_tweaks_channel_transferee_event_handler, NULL) != SWITCH_STATUS_SUCCESS) {
+		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Failed to bind to channel_bridge event\n");
 	}
 }
 
@@ -651,16 +699,3 @@ SWITCH_DECLARE(switch_status_t) kz_name_tweak(const char *name, kz_tweak_t *type
 
 	return SWITCH_STATUS_FALSE;
 }
-
-/* For Emacs:
- * Local Variables:
- * mode:c
- * indent-tabs-mode:t
- * tab-width:4
- * c-basic-offset:4
- * End:
- * For VIM:
- * vim:set softtabstop=4 shiftwidth=4 tabstop=4:
- */
-
-

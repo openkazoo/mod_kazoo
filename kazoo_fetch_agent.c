@@ -30,17 +30,14 @@
  * kazoo_fetch.c -- XML fetch request handler
  *
  */
+
 #include "mod_kazoo.h"
 
-static const char *fetch_uuid_sources[] = {
-		"Fetch-Call-UUID",
-		"refer-from-channel-id",
-		"sip_call_id",
-		NULL
-};
+static const char *fetch_uuid_sources[] = {"Fetch-Call-UUID", "refer-from-channel-id", "sip_call_id", NULL};
 
-static char *xml_section_to_string(switch_xml_section_t section) {
-	switch(section) {
+static char *xml_section_to_string(switch_xml_section_t section)
+{
+	switch (section) {
 	case SWITCH_XML_SECTION_CONFIG:
 		return "configuration";
 	case SWITCH_XML_SECTION_DIRECTORY:
@@ -58,9 +55,10 @@ static char *xml_section_to_string(switch_xml_section_t section) {
 	}
 }
 
-static char *expand_vars(char *xml_str) {
+static char *expand_vars(char *xml_str)
+{
 	char *var, *val;
-	char *rp = xml_str; /* read pointer */
+	char *rp = xml_str;	  /* read pointer */
 	char *ep, *wp, *buff; /* end pointer, write pointer, write buffer */
 
 	if (!(strstr(xml_str, "$${"))) {
@@ -81,10 +79,10 @@ static char *expand_vars(char *xml_str) {
 				*e++ = '\0';
 				rp = e;
 
-				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "trying to expand %s \n", var);
+				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Trying to expand %s \n", var);
 				if ((val = switch_core_get_variable_dup(var))) {
 					char *p;
-					switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "expanded %s to %s\n", var, val);
+					switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Expanded %s to %s\n", var, val);
 					for (p = val; p && *p && wp <= ep; p++) {
 						*wp++ = *p;
 					}
@@ -103,11 +101,13 @@ static char *expand_vars(char *xml_str) {
 	return buff;
 }
 
-static switch_xml_t fetch_handler(const char *section, const char *tag_name, const char *key_name, const char *key_value, switch_event_t *params, void *user_data) {
+static switch_xml_t fetch_handler(const char *section, const char *tag_name, const char *key_name,
+								  const char *key_value, switch_event_t *params, void *user_data)
+{
 	switch_xml_t xml = NULL;
 	switch_uuid_t uuid;
 	switch_time_t now = 0;
-	ei_xml_agent_t *agent = (ei_xml_agent_t *) user_data;
+	ei_xml_agent_t *agent = (ei_xml_agent_t *)user_data;
 	ei_xml_client_t *client;
 	fetch_handler_t *fetch_handler;
 	xml_fetch_reply_t reply, *pending, *prev = NULL;
@@ -141,23 +141,23 @@ static switch_xml_t fetch_handler(const char *section, const char *tag_name, con
 
 	/* no client, no work required */
 	if (!client || !client->fetch_handlers) {
-		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_NOTICE, "No %s XML erlang handler currently available\n"
-						  ,section);
+		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_NOTICE, "No %s XML erlang handler currently available\n",
+						  section);
 		switch_thread_rwlock_unlock(agent->lock);
 		return xml;
 	}
 
 	/* no profile, no work required */
 	if (!profile) {
-		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_NOTICE, "weird case where client is available but there's no profile for %s. try reloading mod_kazoo.\n"
-						  ,section);
+		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_NOTICE,
+						  "Client is available but there's no profile for %s (try reloading mod_kazoo)\n", section);
 		switch_thread_rwlock_unlock(agent->lock);
 		return xml;
 	}
 
-	if(event == NULL) {
+	if (event == NULL) {
 		if (switch_event_create(&event, SWITCH_EVENT_GENERAL) != SWITCH_STATUS_SUCCESS) {
-			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "error creating event for fetch handler\n");
+			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Error creating event for fetch handler\n");
 			return xml;
 		}
 	}
@@ -170,12 +170,12 @@ static switch_xml_t fetch_handler(const char *section, const char *tag_name, con
 	reply.next = NULL;
 	reply.xml_str = NULL;
 
-	if(switch_event_get_header(event, "Unique-ID") == NULL) {
+	if (switch_event_get_header(event, "Unique-ID") == NULL) {
 		int i;
-		for(i = 0; fetch_uuid_sources[i] != NULL; i++) {
-			if((fetch_call_id = switch_event_get_header(event, fetch_uuid_sources[i])) != NULL) {
+		for (i = 0; fetch_uuid_sources[i] != NULL; i++) {
+			if ((fetch_call_id = switch_event_get_header(event, fetch_uuid_sources[i])) != NULL) {
 				switch_core_session_t *session = NULL;
-				if((session = switch_core_session_locate(fetch_call_id)) != NULL) {
+				if ((session = switch_core_session_locate(fetch_call_id)) != NULL) {
 					switch_channel_t *channel = switch_core_session_get_channel(session);
 					uint32_t verbose = switch_channel_test_flag(channel, CF_VERBOSE_EVENTS);
 					switch_channel_set_flag(channel, CF_VERBOSE_EVENTS);
@@ -194,7 +194,8 @@ static switch_xml_t fetch_handler(const char *section, const char *tag_name, con
 	switch_event_add_header_string(event, SWITCH_STACK_BOTTOM, "Fetch-Key-Name", key_name);
 	switch_event_add_header_string(event, SWITCH_STACK_BOTTOM, "Fetch-Key-Value", key_value);
 	switch_event_add_header(event, SWITCH_STACK_BOTTOM, "Fetch-Timeout", "%u", profile->fetch_timeout);
-	switch_event_add_header(event, SWITCH_STACK_BOTTOM, "Fetch-Timestamp-Micro", "%" SWITCH_UINT64_T_FMT, (uint64_t)now);
+	switch_event_add_header(event, SWITCH_STACK_BOTTOM, "Fetch-Timestamp-Micro", "%" SWITCH_UINT64_T_FMT,
+							(uint64_t)now);
 	switch_event_add_header_string(event, SWITCH_STACK_BOTTOM, "Kazoo-Version", VERSION);
 	switch_event_add_header_string(event, SWITCH_STACK_BOTTOM, "Kazoo-Bundle", BUNDLE);
 	switch_event_add_header_string(event, SWITCH_STACK_BOTTOM, "Kazoo-Release", RELEASE);
@@ -203,7 +204,7 @@ static switch_xml_t fetch_handler(const char *section, const char *tag_name, con
 
 	switch_malloc(send_msg, sizeof(*send_msg));
 
-	if(client->ei_node->legacy) {
+	if (client->ei_node->legacy) {
 		ei_x_new_with_version(&send_msg->buf);
 		ei_x_encode_tuple_header(&send_msg->buf, 7);
 		ei_x_encode_atom(&send_msg->buf, "fetch");
@@ -236,35 +237,29 @@ static switch_xml_t fetch_handler(const char *section, const char *tag_name, con
 	while (fetch_handler != NULL && sent == 0) {
 		memcpy(&send_msg->pid, &fetch_handler->pid, sizeof(erlang_pid));
 		if (switch_queue_trypush(client->ei_node->send_msgs, send_msg) != SWITCH_STATUS_SUCCESS) {
-			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Failed to send %s XML request to %s <%d.%d.%d>\n"
-							  ,section
-							  ,fetch_handler->pid.node
-							  ,fetch_handler->pid.creation
-							  ,fetch_handler->pid.num
-							  ,fetch_handler->pid.serial);
+			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Failed to send %s XML request to %s <%d.%d.%d>\n",
+							  section, fetch_handler->pid.node, fetch_handler->pid.creation, fetch_handler->pid.num,
+							  fetch_handler->pid.serial);
 		} else {
-			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Sending %s XML request (%s) to %s <%d.%d.%d>\n"
-							  ,section
-							  ,reply.uuid_str
-							  ,fetch_handler->pid.node
-							  ,fetch_handler->pid.creation
-							  ,fetch_handler->pid.num
-							  ,fetch_handler->pid.serial);
+			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Sending %s XML request (%s) to %s <%d.%d.%d>\n",
+							  section, reply.uuid_str, fetch_handler->pid.node, fetch_handler->pid.creation,
+							  fetch_handler->pid.num, fetch_handler->pid.serial);
 			sent = 1;
 		}
 		fetch_handler = fetch_handler->next;
 	}
 
-	if(!sent) {
+	if (!sent) {
 		ei_x_free(&send_msg->buf);
 		switch_safe_free(send_msg);
 	}
 
-	if(params == NULL)
+	if (params == NULL) {
 		switch_event_destroy(&event);
+	}
 
 	/* wait for a reply (if there isnt already one...amazingly improbable but lets not take shortcuts */
-    switch_mutex_lock(agent->replies_mutex);
+	switch_mutex_lock(agent->replies_mutex);
 
 	switch_thread_rwlock_unlock(agent->lock);
 
@@ -275,7 +270,8 @@ static switch_xml_t fetch_handler(const char *section, const char *tag_name, con
 		while (switch_micro_time_now() < timeout) {
 			/* unlock the replies list and go to sleep, calculate a three second timeout before we started the loop
 			 * plus 100ms to add a little hysteresis between the timeout and the while loop */
-			switch_thread_cond_timedwait(agent->new_reply, agent->replies_mutex, (timeout - switch_micro_time_now() + 100000));
+			switch_thread_cond_timedwait(agent->new_reply, agent->replies_mutex,
+										 (timeout - switch_micro_time_now() + 100000));
 
 			/* if we woke up (and therefore have locked replies again) check if we got our reply
 			 * otherwise we either timed-out (the while condition will fail) or one of
@@ -310,24 +306,17 @@ static switch_xml_t fetch_handler(const char *section, const char *tag_name, con
 
 	/* after all that did we get what we were after?! */
 	if (reply.xml_str) {
-		/* HELL YA WE DID */
 		if (kazoo_globals.expand_headers_on_fetch) {
 			reply.xml_str = expand_vars(reply.xml_str);
 		}
-		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Received %s XML (%s) after %dms: %s\n"
-						  ,section
-						  ,reply.uuid_str
-						  ,(unsigned int) (switch_micro_time_now() - now) / 1000
-						  ,reply.xml_str);
+		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Received %s XML (%s) after %dms: %s\n", section,
+						  reply.uuid_str, (unsigned int)(switch_micro_time_now() - now) / 1000, reply.xml_str);
 		if ((xml = switch_xml_parse_str_dynamic(reply.xml_str, SWITCH_FALSE)) == NULL) {
 			switch_safe_free(reply.xml_str);
 		}
 	} else {
-		/* facepalm */
-		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_NOTICE, "Request for %s XML (%s) timed-out after %dms\n"
-						  ,section
-						  ,reply.uuid_str
-						  ,(unsigned int) (switch_micro_time_now() - now) / 1000);
+		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_NOTICE, "Request for %s XML (%s) timed-out after %dms\n",
+						  section, reply.uuid_str, (unsigned int)(switch_micro_time_now() - now) / 1000);
 	}
 
 	return xml;
@@ -338,10 +327,12 @@ void bind_fetch_profile(ei_xml_agent_t *agent, kazoo_config_ptr fetch_handlers)
 	switch_hash_index_t *hi;
 	kazoo_fetch_profile_ptr val = NULL, ptr = NULL;
 
-	if (!fetch_handlers) return;
+	if (!fetch_handlers) {
+		return;
+	}
 
 	for (hi = switch_core_hash_first(fetch_handlers->hash); hi; hi = switch_core_hash_next(&hi)) {
-		switch_core_hash_this(hi, NULL, NULL, (void**) &val);
+		switch_core_hash_this(hi, NULL, NULL, (void **)&val);
 		if (val && val->section == agent->section) {
 			ptr = val;
 			break;
@@ -353,46 +344,59 @@ void bind_fetch_profile(ei_xml_agent_t *agent, kazoo_config_ptr fetch_handlers)
 
 void rebind_fetch_profiles(kazoo_config_ptr fetch_handlers)
 {
-	if(kazoo_globals.config_fetch_binding != NULL)
-		bind_fetch_profile((ei_xml_agent_t *) switch_xml_get_binding_user_data(kazoo_globals.config_fetch_binding), fetch_handlers);
+	if (kazoo_globals.config_fetch_binding != NULL) {
+		bind_fetch_profile((ei_xml_agent_t *)switch_xml_get_binding_user_data(kazoo_globals.config_fetch_binding),
+						   fetch_handlers);
+	}
 
-	if(kazoo_globals.directory_fetch_binding != NULL)
-		bind_fetch_profile((ei_xml_agent_t *) switch_xml_get_binding_user_data(kazoo_globals.directory_fetch_binding), fetch_handlers);
+	if (kazoo_globals.directory_fetch_binding != NULL) {
+		bind_fetch_profile((ei_xml_agent_t *)switch_xml_get_binding_user_data(kazoo_globals.directory_fetch_binding),
+						   fetch_handlers);
+	}
 
-	if(kazoo_globals.dialplan_fetch_binding != NULL)
-		bind_fetch_profile((ei_xml_agent_t *) switch_xml_get_binding_user_data(kazoo_globals.dialplan_fetch_binding), fetch_handlers);
+	if (kazoo_globals.dialplan_fetch_binding != NULL) {
+		bind_fetch_profile((ei_xml_agent_t *)switch_xml_get_binding_user_data(kazoo_globals.dialplan_fetch_binding),
+						   fetch_handlers);
+	}
 
-	if(kazoo_globals.channels_fetch_binding != NULL)
-		bind_fetch_profile((ei_xml_agent_t *) switch_xml_get_binding_user_data(kazoo_globals.channels_fetch_binding), fetch_handlers);
+	if (kazoo_globals.channels_fetch_binding != NULL) {
+		bind_fetch_profile((ei_xml_agent_t *)switch_xml_get_binding_user_data(kazoo_globals.channels_fetch_binding),
+						   fetch_handlers);
+	}
 
-	if(kazoo_globals.languages_fetch_binding != NULL)
-		bind_fetch_profile((ei_xml_agent_t *) switch_xml_get_binding_user_data(kazoo_globals.languages_fetch_binding), fetch_handlers);
+	if (kazoo_globals.languages_fetch_binding != NULL) {
+		bind_fetch_profile((ei_xml_agent_t *)switch_xml_get_binding_user_data(kazoo_globals.languages_fetch_binding),
+						   fetch_handlers);
+	}
 
-	if(kazoo_globals.chatplan_fetch_binding != NULL)
-		bind_fetch_profile((ei_xml_agent_t *) switch_xml_get_binding_user_data(kazoo_globals.chatplan_fetch_binding), fetch_handlers);
+	if (kazoo_globals.chatplan_fetch_binding != NULL) {
+		bind_fetch_profile((ei_xml_agent_t *)switch_xml_get_binding_user_data(kazoo_globals.chatplan_fetch_binding),
+						   fetch_handlers);
+	}
 }
 
-static switch_status_t bind_fetch_agent(switch_xml_section_t section, switch_xml_binding_t **binding) {
+static switch_status_t bind_fetch_agent(switch_xml_section_t section, switch_xml_binding_t **binding)
+{
 	switch_memory_pool_t *pool = NULL;
 	ei_xml_agent_t *agent;
 
 	/* create memory pool for this xml search binging (lives for duration of mod_kazoo runtime) */
 	if (switch_core_new_memory_pool(&pool) != SWITCH_STATUS_SUCCESS) {
-		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Out of memory: They're not people; they're hippies!\n");
+		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Failed to create a new sub memory pool\n");
 		return SWITCH_STATUS_MEMERR;
 	}
 
 	/* allocate some memory to store the fetch bindings for this section */
-    if (!(agent = switch_core_alloc(pool, sizeof (*agent)))) {
-        switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Out of memory: Oh, Jesus tap-dancing Christ!\n");
-        return SWITCH_STATUS_MEMERR;
-    }
+	if (!(agent = switch_core_alloc(pool, sizeof(*agent)))) {
+		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Failed to allocate memory from sub memory pool\n");
+		return SWITCH_STATUS_MEMERR;
+	}
 
 	/* try to bind to the switch */
 	if (switch_xml_bind_search_function_ret(fetch_handler, section, agent, binding) != SWITCH_STATUS_SUCCESS) {
 		switch_core_destroy_memory_pool(&pool);
-		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Could not bind to FreeSWITCH %s XML requests\n"
-						  ,xml_section_to_string(section));
+		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Could not bind to FreeSWITCH %s XML requests\n",
+						  xml_section_to_string(section));
 		return SWITCH_STATUS_GENERR;
 	}
 
@@ -408,18 +412,20 @@ static switch_status_t bind_fetch_agent(switch_xml_section_t section, switch_xml
 
 	bind_fetch_profile(agent, kazoo_globals.fetch_handlers);
 
-	switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Bound to %s XML requests\n"
-					  ,xml_section_to_string(section));
+	switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Bound to %s XML requests\n",
+					  xml_section_to_string(section));
 
 	return SWITCH_STATUS_SUCCESS;
 }
 
-static switch_status_t unbind_fetch_agent(switch_xml_binding_t **binding) {
+static switch_status_t unbind_fetch_agent(switch_xml_binding_t **binding)
+{
 	ei_xml_agent_t *agent;
 	ei_xml_client_t *client;
 
-	if(*binding == NULL)
+	if (*binding == NULL) {
 		return SWITCH_STATUS_GENERR;
+	}
 
 	/* get a pointer to our user_data */
 	agent = (ei_xml_agent_t *)switch_xml_get_binding_user_data(*binding);
@@ -434,20 +440,17 @@ static switch_status_t unbind_fetch_agent(switch_xml_binding_t **binding) {
 
 	/* cleanly destroy each client */
 	client = agent->clients;
-	while(client != NULL) {
+	while (client != NULL) {
 		ei_xml_client_t *tmp_client = client;
 		fetch_handler_t *fetch_handler;
 
 		fetch_handler = client->fetch_handlers;
-		while(fetch_handler != NULL) {
+		while (fetch_handler != NULL) {
 			fetch_handler_t *tmp_fetch_handler = fetch_handler;
 
-			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Removed %s XML handler %s <%d.%d.%d>\n"
-							  ,xml_section_to_string(agent->section)
-							  ,fetch_handler->pid.node
-							  ,fetch_handler->pid.creation
-							  ,fetch_handler->pid.num
-							  ,fetch_handler->pid.serial);
+			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Removed %s XML handler %s <%d.%d.%d>\n",
+							  xml_section_to_string(agent->section), fetch_handler->pid.node,
+							  fetch_handler->pid.creation, fetch_handler->pid.num, fetch_handler->pid.serial);
 
 			fetch_handler = fetch_handler->next;
 			switch_safe_free(tmp_fetch_handler);
@@ -466,8 +469,8 @@ static switch_status_t unbind_fetch_agent(switch_xml_binding_t **binding) {
 	switch_mutex_unlock(agent->current_client_mutex);
 	switch_mutex_unlock(agent->replies_mutex);
 
-	switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Unbound from %s XML requests\n"
-					  ,xml_section_to_string(agent->section));
+	switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Unbound from %s XML requests\n",
+					  xml_section_to_string(agent->section));
 
 	/* cleanly destroy the bindings */
 	switch_thread_rwlock_destroy(agent->lock);
@@ -479,13 +482,15 @@ static switch_status_t unbind_fetch_agent(switch_xml_binding_t **binding) {
 	return SWITCH_STATUS_SUCCESS;
 }
 
-static switch_status_t remove_xml_client(ei_node_t *ei_node, switch_xml_binding_t *binding) {
+static switch_status_t remove_xml_client(ei_node_t *ei_node, switch_xml_binding_t *binding)
+{
 	ei_xml_agent_t *agent;
 	ei_xml_client_t *client, *prev = NULL;
 	int found = 0;
 
-	if(binding == NULL)
+	if (binding == NULL) {
 		return SWITCH_STATUS_GENERR;
+	}
 
 	agent = (ei_xml_agent_t *)switch_xml_get_binding_user_data(binding);
 
@@ -521,15 +526,12 @@ static switch_status_t remove_xml_client(ei_node_t *ei_node, switch_xml_binding_
 		switch_mutex_unlock(agent->current_client_mutex);
 
 		fetch_handler = client->fetch_handlers;
-		while(fetch_handler != NULL) {
+		while (fetch_handler != NULL) {
 			fetch_handler_t *tmp_fetch_handler = fetch_handler;
 
-			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Removed %s XML handler %s <%d.%d.%d>\n"
-							  ,xml_section_to_string(agent->section)
-							  ,fetch_handler->pid.node
-							  ,fetch_handler->pid.creation
-							  ,fetch_handler->pid.num
-							  ,fetch_handler->pid.serial);
+			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Removed %s XML handler %s <%d.%d.%d>\n",
+							  xml_section_to_string(agent->section), fetch_handler->pid.node,
+							  fetch_handler->pid.creation, fetch_handler->pid.num, fetch_handler->pid.serial);
 
 			fetch_handler = fetch_handler->next;
 			switch_safe_free(tmp_fetch_handler);
@@ -543,8 +545,9 @@ static switch_status_t remove_xml_client(ei_node_t *ei_node, switch_xml_binding_
 	return SWITCH_STATUS_SUCCESS;
 }
 
-static ei_xml_client_t *add_xml_client(ei_node_t *ei_node, ei_xml_agent_t *agent) {
-    ei_xml_client_t *client;
+static ei_xml_client_t *add_xml_client(ei_node_t *ei_node, ei_xml_agent_t *agent)
+{
+	ei_xml_client_t *client;
 
 	switch_malloc(client, sizeof(*client));
 
@@ -561,8 +564,9 @@ static ei_xml_client_t *add_xml_client(ei_node_t *ei_node, ei_xml_agent_t *agent
 	return client;
 }
 
-static ei_xml_client_t *find_xml_client(ei_node_t *ei_node, ei_xml_agent_t *agent) {
-    ei_xml_client_t *client;
+static ei_xml_client_t *find_xml_client(ei_node_t *ei_node, ei_xml_agent_t *agent)
+{
+	ei_xml_client_t *client;
 
 	client = agent->clients;
 	while (client != NULL) {
@@ -576,7 +580,8 @@ static ei_xml_client_t *find_xml_client(ei_node_t *ei_node, ei_xml_agent_t *agen
 	return NULL;
 }
 
-static switch_status_t remove_fetch_handler(ei_node_t *ei_node, erlang_pid *from, switch_xml_binding_t *binding) {
+static switch_status_t remove_fetch_handler(ei_node_t *ei_node, erlang_pid *from, switch_xml_binding_t *binding)
+{
 	ei_xml_agent_t *agent;
 	ei_xml_client_t *client;
 	fetch_handler_t *fetch_handler, *prev = NULL;
@@ -584,8 +589,8 @@ static switch_status_t remove_fetch_handler(ei_node_t *ei_node, erlang_pid *from
 
 	agent = (ei_xml_agent_t *)switch_xml_get_binding_user_data(binding);
 
-    /* write-lock the agent */
-    switch_thread_rwlock_wrlock(agent->lock);
+	/* write-lock the agent */
+	switch_thread_rwlock_wrlock(agent->lock);
 
 	if (!(client = find_xml_client(ei_node, agent))) {
 		switch_thread_rwlock_unlock(agent->lock);
@@ -610,12 +615,9 @@ static switch_status_t remove_fetch_handler(ei_node_t *ei_node, erlang_pid *from
 			prev->next = fetch_handler->next;
 		}
 
-		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Removed %s XML handler %s <%d.%d.%d>\n"
-						  ,xml_section_to_string(agent->section)
-						  ,fetch_handler->pid.node
-						  ,fetch_handler->pid.creation
-						  ,fetch_handler->pid.num
-						  ,fetch_handler->pid.serial);
+		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Removed %s XML handler %s <%d.%d.%d>\n",
+						  xml_section_to_string(agent->section), fetch_handler->pid.node, fetch_handler->pid.creation,
+						  fetch_handler->pid.num, fetch_handler->pid.serial);
 
 		switch_safe_free(fetch_handler);
 	}
@@ -624,9 +626,11 @@ static switch_status_t remove_fetch_handler(ei_node_t *ei_node, erlang_pid *from
 	return SWITCH_STATUS_SUCCESS;
 }
 
-static switch_status_t handle_api_command_stream(ei_node_t *ei_node, switch_stream_handle_t *stream, switch_xml_binding_t *binding) {
+static switch_status_t handle_api_command_stream(ei_node_t *ei_node, switch_stream_handle_t *stream,
+												 switch_xml_binding_t *binding)
+{
 	ei_xml_agent_t *agent;
-    ei_xml_client_t *client;
+	ei_xml_client_t *client;
 
 	if (!binding) {
 		return SWITCH_STATUS_GENERR;
@@ -642,11 +646,8 @@ static switch_status_t handle_api_command_stream(ei_node_t *ei_node, switch_stre
 			fetch_handler_t *fetch_handler;
 			fetch_handler = client->fetch_handlers;
 			while (fetch_handler != NULL) {
-				stream->write_function(stream, "XML %s handler <%d.%d.%d>\n"
-									   ,xml_section_to_string(agent->section)
-									   ,fetch_handler->pid.creation
-									   ,fetch_handler->pid.num
-									   ,fetch_handler->pid.serial);
+				stream->write_function(stream, "XML %s handler <%d.%d.%d>\n", xml_section_to_string(agent->section),
+									   fetch_handler->pid.creation, fetch_handler->pid.num, fetch_handler->pid.serial);
 				fetch_handler = fetch_handler->next;
 			}
 			break;
@@ -659,7 +660,8 @@ static switch_status_t handle_api_command_stream(ei_node_t *ei_node, switch_stre
 	return SWITCH_STATUS_SUCCESS;
 }
 
-switch_status_t bind_fetch_agents() {
+switch_status_t bind_fetch_agents()
+{
 	bind_fetch_agent(SWITCH_XML_SECTION_CONFIG, &kazoo_globals.config_fetch_binding);
 	bind_fetch_agent(SWITCH_XML_SECTION_DIRECTORY, &kazoo_globals.directory_fetch_binding);
 	bind_fetch_agent(SWITCH_XML_SECTION_DIALPLAN, &kazoo_globals.dialplan_fetch_binding);
@@ -670,7 +672,8 @@ switch_status_t bind_fetch_agents() {
 	return SWITCH_STATUS_SUCCESS;
 }
 
-switch_status_t unbind_fetch_agents() {
+switch_status_t unbind_fetch_agents()
+{
 	unbind_fetch_agent(&kazoo_globals.config_fetch_binding);
 	unbind_fetch_agent(&kazoo_globals.directory_fetch_binding);
 	unbind_fetch_agent(&kazoo_globals.dialplan_fetch_binding);
@@ -681,7 +684,8 @@ switch_status_t unbind_fetch_agents() {
 	return SWITCH_STATUS_SUCCESS;
 }
 
-switch_status_t remove_xml_clients(ei_node_t *ei_node) {
+switch_status_t remove_xml_clients(ei_node_t *ei_node)
+{
 	remove_xml_client(ei_node, kazoo_globals.config_fetch_binding);
 	remove_xml_client(ei_node, kazoo_globals.directory_fetch_binding);
 	remove_xml_client(ei_node, kazoo_globals.dialplan_fetch_binding);
@@ -692,35 +696,38 @@ switch_status_t remove_xml_clients(ei_node_t *ei_node) {
 	return SWITCH_STATUS_SUCCESS;
 }
 
-switch_status_t add_fetch_handler(ei_node_t *ei_node, erlang_pid *from, switch_xml_binding_t *binding) {
+switch_status_t add_fetch_handler(ei_node_t *ei_node, erlang_pid *from, switch_xml_binding_t *binding)
+{
 	ei_xml_agent_t *agent;
 	ei_xml_client_t *client;
 	fetch_handler_t *fetch_handler;
 
-	if(binding == NULL)
+	if (binding == NULL) {
 		return SWITCH_STATUS_GENERR;
+	}
 
 	agent = (ei_xml_agent_t *)switch_xml_get_binding_user_data(binding);
 
-    /* write-lock the agent */
-    switch_thread_rwlock_wrlock(agent->lock);
+	/* write-lock the agent */
+	switch_thread_rwlock_wrlock(agent->lock);
 
 	if (!(client = find_xml_client(ei_node, agent))) {
 		client = add_xml_client(ei_node, agent);
 	}
 
 	fetch_handler = client->fetch_handlers;
-    while (fetch_handler != NULL) {
+	while (fetch_handler != NULL) {
 		if (ei_compare_pids(&fetch_handler->pid, from) == SWITCH_STATUS_SUCCESS) {
 			switch_thread_rwlock_unlock(agent->lock);
-            return SWITCH_STATUS_SUCCESS;
-        }
-        fetch_handler = fetch_handler->next;
-    }
+			return SWITCH_STATUS_SUCCESS;
+		}
+		fetch_handler = fetch_handler->next;
+	}
 
 	switch_malloc(fetch_handler, sizeof(*fetch_handler));
 
-	memcpy(&fetch_handler->pid, from, sizeof(erlang_pid));;
+	memcpy(&fetch_handler->pid, from, sizeof(erlang_pid));
+	;
 
 	fetch_handler->next = NULL;
 	if (client->fetch_handlers) {
@@ -729,12 +736,9 @@ switch_status_t add_fetch_handler(ei_node_t *ei_node, erlang_pid *from, switch_x
 
 	client->fetch_handlers = fetch_handler;
 
-	switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Added %s XML handler %s <%d.%d.%d>\n"
-					  ,xml_section_to_string(agent->section)
-					  ,fetch_handler->pid.node
-					  ,fetch_handler->pid.creation
-					  ,fetch_handler->pid.num
-					  ,fetch_handler->pid.serial);
+	switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Added %s XML handler %s <%d.%d.%d>\n",
+					  xml_section_to_string(agent->section), fetch_handler->pid.node, fetch_handler->pid.creation,
+					  fetch_handler->pid.num, fetch_handler->pid.serial);
 
 	switch_thread_rwlock_unlock(agent->lock);
 
@@ -743,7 +747,8 @@ switch_status_t add_fetch_handler(ei_node_t *ei_node, erlang_pid *from, switch_x
 	return SWITCH_STATUS_SUCCESS;
 }
 
-switch_status_t remove_fetch_handlers(ei_node_t *ei_node, erlang_pid *from) {
+switch_status_t remove_fetch_handlers(ei_node_t *ei_node, erlang_pid *from)
+{
 	remove_fetch_handler(ei_node, from, kazoo_globals.config_fetch_binding);
 	remove_fetch_handler(ei_node, from, kazoo_globals.directory_fetch_binding);
 	remove_fetch_handler(ei_node, from, kazoo_globals.dialplan_fetch_binding);
@@ -754,14 +759,15 @@ switch_status_t remove_fetch_handlers(ei_node_t *ei_node, erlang_pid *from) {
 	return SWITCH_STATUS_SUCCESS;
 }
 
-switch_status_t fetch_reply(char *uuid_str, char *xml_str, switch_xml_binding_t *binding) {
+switch_status_t fetch_reply(char *uuid_str, char *xml_str, switch_xml_binding_t *binding)
+{
 	ei_xml_agent_t *agent;
 	xml_fetch_reply_t *reply;
 	switch_status_t status = SWITCH_STATUS_NOTFOUND;
 
 	agent = (ei_xml_agent_t *)switch_xml_get_binding_user_data(binding);
 
-    switch_mutex_lock(agent->replies_mutex);
+	switch_mutex_lock(agent->replies_mutex);
 	reply = agent->replies;
 	while (reply != NULL) {
 		if (!strncmp(reply->uuid_str, uuid_str, SWITCH_UUID_FORMATTED_LENGTH)) {
@@ -775,12 +781,13 @@ switch_status_t fetch_reply(char *uuid_str, char *xml_str, switch_xml_binding_t 
 
 		reply = reply->next;
 	}
-    switch_mutex_unlock(agent->replies_mutex);
+	switch_mutex_unlock(agent->replies_mutex);
 
 	return status;
 }
 
-switch_status_t handle_api_command_streams(ei_node_t *ei_node, switch_stream_handle_t *stream) {
+switch_status_t handle_api_command_streams(ei_node_t *ei_node, switch_stream_handle_t *stream)
+{
 	handle_api_command_stream(ei_node, stream, kazoo_globals.config_fetch_binding);
 	handle_api_command_stream(ei_node, stream, kazoo_globals.directory_fetch_binding);
 	handle_api_command_stream(ei_node, stream, kazoo_globals.dialplan_fetch_binding);
@@ -790,14 +797,3 @@ switch_status_t handle_api_command_streams(ei_node_t *ei_node, switch_stream_han
 
 	return SWITCH_STATUS_SUCCESS;
 }
-
-/* For Emacs:
- * Local Variables:
- * mode:c
- * indent-tabs-mode:t
- * tab-width:4
- * c-basic-offset:4
- * End:
- * For VIM:
- * vim:set softtabstop=4 shiftwidth=4 tabstop=4:
- */

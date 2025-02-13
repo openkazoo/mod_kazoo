@@ -28,12 +28,14 @@
  * mod_hacks.c -- hacks with state handlers
  *
  */
+
 #include "mod_kazoo.h"
 
 #define MY_EVENT_JSON_CDR "KZ_CDR"
 
-#define maybe_add_json_string(_json, _name, _string) \
-	if (!zstr(_string)) cJSON_AddItemToObject(_json, _name, cJSON_CreateString((char *)_string))
+#define maybe_add_json_string(_json, _name, _string)                                                                   \
+	if (!zstr(_string))                                                                                                \
+	cJSON_AddItemToObject(_json, _name, cJSON_CreateString((char *)_string))
 
 static void kz_switch_ivr_set_json_profile_data(cJSON *json, switch_caller_profile_t *caller_profile)
 {
@@ -60,8 +62,13 @@ static void kz_switch_ivr_set_json_profile_data(cJSON *json, switch_caller_profi
 	maybe_add_json_string(json, "Profile-UUID", caller_profile->uuid_str);
 	maybe_add_json_string(json, "Profile-Clone-Of", caller_profile->clone_of);
 	maybe_add_json_string(json, "Transfer-Source", caller_profile->transfer_source);
-	cJSON_AddItemToObject(json, "Direction", cJSON_CreateString(caller_profile->direction == SWITCH_CALL_DIRECTION_OUTBOUND ? "outbound" : "inbound"));
-	cJSON_AddItemToObject(json, "Logical-Direction", cJSON_CreateString(caller_profile->logical_direction == SWITCH_CALL_DIRECTION_OUTBOUND ? "outbound" : "inbound"));
+	cJSON_AddItemToObject(
+		json, "Direction",
+		cJSON_CreateString(caller_profile->direction == SWITCH_CALL_DIRECTION_OUTBOUND ? "outbound" : "inbound"));
+	cJSON_AddItemToObject(json, "Logical-Direction",
+						  cJSON_CreateString(caller_profile->logical_direction == SWITCH_CALL_DIRECTION_OUTBOUND
+												 ? "outbound"
+												 : "inbound"));
 
 	soft = cJSON_CreateObject();
 	for (pn = caller_profile->soft; pn; pn = pn->next) {
@@ -71,15 +78,20 @@ static void kz_switch_ivr_set_json_profile_data(cJSON *json, switch_caller_profi
 	cJSON_AddItemToObject(json, "Directory", soft);
 }
 
-SWITCH_DECLARE(void) kz_switch_ivr_set_json_call_flaws(cJSON *json, switch_core_session_t *session, switch_media_type_t type)
+SWITCH_DECLARE(void)
+kz_switch_ivr_set_json_call_flaws(cJSON *json, switch_core_session_t *session, switch_media_type_t type)
 {
 	const char *name = (type == SWITCH_MEDIA_TYPE_VIDEO) ? "Video" : "Audio";
 	cJSON *j_stat;
 	switch_rtp_stats_t *stats = switch_core_media_get_stats(session, type, NULL);
 
-	if (!stats) return;
+	if (!stats) {
+		return;
+	}
 
-	if (!stats->inbound.error_log && !stats->outbound.error_log) return;
+	if (!stats->inbound.error_log && !stats->outbound.error_log) {
+		return;
+	}
 
 	j_stat = cJSON_CreateObject();
 	cJSON_AddItemToObject(json, name, j_stat);
@@ -94,9 +106,11 @@ SWITCH_DECLARE(void) kz_switch_ivr_set_json_call_flaws(cJSON *json, switch_core_
 		j_err_log = cJSON_CreateArray();
 		cJSON_AddItemToObject(j_in, "Error-Log", j_err_log);
 
-		for(ep = stats->inbound.error_log; ep; ep = ep->next) {
+		for (ep = stats->inbound.error_log; ep; ep = ep->next) {
 
-			if (!(ep->start && ep->stop)) continue;
+			if (!(ep->start && ep->stop)) {
+				continue;
+			}
 
 			j_err = cJSON_CreateObject();
 
@@ -119,9 +133,11 @@ SWITCH_DECLARE(void) kz_switch_ivr_set_json_call_flaws(cJSON *json, switch_core_
 		j_err_log = cJSON_CreateArray();
 		cJSON_AddItemToObject(j_out, "Error-Log", j_err_log);
 
-		for(ep = stats->outbound.error_log; ep; ep = ep->next) {
+		for (ep = stats->outbound.error_log; ep; ep = ep->next) {
 
-			if (!(ep->start && ep->stop)) continue;
+			if (!(ep->start && ep->stop)) {
+				continue;
+			}
 
 			j_err = cJSON_CreateObject();
 
@@ -135,18 +151,21 @@ SWITCH_DECLARE(void) kz_switch_ivr_set_json_call_flaws(cJSON *json, switch_core_
 	}
 }
 
-#define add_jstat(_j, _i, _s)											\
-	switch_snprintf(var_val, sizeof(var_val), "%" SWITCH_SIZE_T_FMT, _i); \
+#define add_jstat(_j, _i, _s)                                                                                          \
+	switch_snprintf(var_val, sizeof(var_val), "%" SWITCH_SIZE_T_FMT, _i);                                              \
 	cJSON_AddItemToObject(_j, _s, cJSON_CreateNumber(_i))
 
-SWITCH_DECLARE(void) kz_switch_ivr_set_json_call_stats(cJSON *json, switch_core_session_t *session, switch_media_type_t type)
+SWITCH_DECLARE(void)
+kz_switch_ivr_set_json_call_stats(cJSON *json, switch_core_session_t *session, switch_media_type_t type)
 {
 	const char *name = (type == SWITCH_MEDIA_TYPE_VIDEO) ? "Video" : "Audio";
 	cJSON *j_stat, *j_in, *j_out;
 	switch_rtp_stats_t *stats = switch_core_media_get_stats(session, type, NULL);
 	char var_val[35] = "";
 
-	if (!stats) return;
+	if (!stats) {
+		return;
+	}
 
 	j_stat = cJSON_CreateObject();
 	j_in = cJSON_CreateObject();
@@ -177,7 +196,6 @@ SWITCH_DECLARE(void) kz_switch_ivr_set_json_call_stats(cJSON *json, switch_core_
 	add_jstat(j_in, stats->inbound.R, "Quality-Percentage");
 	add_jstat(j_in, stats->inbound.mos, "MOS");
 
-
 	add_jstat(j_out, stats->outbound.raw_bytes, "Raw-Bytes");
 	add_jstat(j_out, stats->outbound.media_bytes, "Media-Bytes");
 	add_jstat(j_out, stats->outbound.packet_count, "Packet-Count");
@@ -196,7 +214,8 @@ static switch_status_t kz_report_channel_flaws(switch_core_session_t *session, s
 	kz_switch_ivr_set_json_call_flaws(callStats, session, SWITCH_MEDIA_TYPE_AUDIO);
 	kz_switch_ivr_set_json_call_flaws(callStats, session, SWITCH_MEDIA_TYPE_VIDEO);
 
-	switch_event_add_header_string_nodup(cdr_event, SWITCH_STACK_BOTTOM, "_json_channel_media_errors", cJSON_PrintUnformatted(callStats));
+	switch_event_add_header_string_nodup(cdr_event, SWITCH_STACK_BOTTOM, "_json_channel_media_errors",
+										 cJSON_PrintUnformatted(callStats));
 
 	cJSON_Delete(callStats);
 
@@ -210,12 +229,12 @@ static switch_status_t kz_report_channel_stats(switch_core_session_t *session, s
 	kz_switch_ivr_set_json_call_stats(callStats, session, SWITCH_MEDIA_TYPE_AUDIO);
 	kz_switch_ivr_set_json_call_stats(callStats, session, SWITCH_MEDIA_TYPE_VIDEO);
 
-	switch_event_add_header_string_nodup(cdr_event, SWITCH_STACK_BOTTOM, "_json_channel_stats", cJSON_PrintUnformatted(callStats));
+	switch_event_add_header_string_nodup(cdr_event, SWITCH_STACK_BOTTOM, "_json_channel_stats",
+										 cJSON_PrintUnformatted(callStats));
 
 	cJSON_Delete(callStats);
 
 	return SWITCH_STATUS_SUCCESS;
-
 }
 
 static switch_status_t kz_report_app_log(switch_core_session_t *session, switch_event_t *cdr_event)
@@ -237,12 +256,12 @@ static switch_status_t kz_report_app_log(switch_core_session_t *session, switch_
 		cJSON_AddItemToArray(j_apps, j_application);
 	}
 
-	switch_event_add_header_string_nodup(cdr_event, SWITCH_STACK_BOTTOM, "_json_application_log", cJSON_PrintUnformatted(j_apps));
+	switch_event_add_header_string_nodup(cdr_event, SWITCH_STACK_BOTTOM, "_json_application_log",
+										 cJSON_PrintUnformatted(j_apps));
 
 	cJSON_Delete(j_apps);
 
 	return SWITCH_STATUS_SUCCESS;
-
 }
 
 static switch_status_t kz_report_callflow_extension(switch_caller_profile_t *caller_profile, cJSON *j_profile)
@@ -256,12 +275,16 @@ static switch_status_t kz_report_callflow_extension(switch_caller_profile_t *cal
 
 		cJSON_AddItemToObject(j_profile, "extension", j_caller_extension);
 
-		cJSON_AddItemToObject(j_caller_extension, "name", cJSON_CreateString(caller_profile->caller_extension->extension_name));
-		cJSON_AddItemToObject(j_caller_extension, "number", cJSON_CreateString(caller_profile->caller_extension->extension_number));
+		cJSON_AddItemToObject(j_caller_extension, "name",
+							  cJSON_CreateString(caller_profile->caller_extension->extension_name));
+		cJSON_AddItemToObject(j_caller_extension, "number",
+							  cJSON_CreateString(caller_profile->caller_extension->extension_number));
 		cJSON_AddItemToObject(j_caller_extension, "applications", j_caller_extension_apps);
 
 		if (caller_profile->caller_extension->current_application) {
-			cJSON_AddItemToObject(j_caller_extension, "current_app", cJSON_CreateString(caller_profile->caller_extension->current_application->application_name));
+			cJSON_AddItemToObject(
+				j_caller_extension, "current_app",
+				cJSON_CreateString(caller_profile->caller_extension->current_application->application_name));
 		}
 
 		for (ap = caller_profile->caller_extension->applications; ap; ap = ap->next) {
@@ -289,13 +312,17 @@ static switch_status_t kz_report_callflow_extension(switch_caller_profile_t *cal
 				j_caller_extension = cJSON_CreateObject();
 				cJSON_AddItemToArray(j_inner_extension, j_caller_extension);
 
-				cJSON_AddItemToObject(j_caller_extension, "name", cJSON_CreateString(cp->caller_extension->extension_name));
-				cJSON_AddItemToObject(j_caller_extension, "number", cJSON_CreateString(cp->caller_extension->extension_number));
+				cJSON_AddItemToObject(j_caller_extension, "name",
+									  cJSON_CreateString(cp->caller_extension->extension_name));
+				cJSON_AddItemToObject(j_caller_extension, "number",
+									  cJSON_CreateString(cp->caller_extension->extension_number));
 
 				cJSON_AddItemToObject(j_caller_extension, "dialplan", cJSON_CreateString((char *)cp->dialplan));
 
 				if (cp->caller_extension->current_application) {
-					cJSON_AddItemToObject(j_caller_extension, "current_app", cJSON_CreateString(cp->caller_extension->current_application->application_name));
+					cJSON_AddItemToObject(
+						j_caller_extension, "current_app",
+						cJSON_CreateString(cp->caller_extension->current_application->application_name));
 				}
 
 				j_caller_extension_apps = cJSON_CreateArray();
@@ -308,14 +335,14 @@ static switch_status_t kz_report_callflow_extension(switch_caller_profile_t *cal
 						cJSON_AddItemToObject(j_application, "last_executed", cJSON_CreateString("true"));
 					}
 					cJSON_AddItemToObject(j_application, "app_name", cJSON_CreateString(ap->application_name));
-					cJSON_AddItemToObject(j_application, "app_data", cJSON_CreateString(switch_str_nil(ap->application_data)));
+					cJSON_AddItemToObject(j_application, "app_data",
+										  cJSON_CreateString(switch_str_nil(ap->application_data)));
 				}
 			}
 		}
 	}
 
 	return SWITCH_STATUS_SUCCESS;
-
 }
 
 static switch_status_t kz_report_callflow(switch_core_session_t *session, switch_event_t *cdr_event)
@@ -323,7 +350,6 @@ static switch_status_t kz_report_callflow(switch_core_session_t *session, switch
 	switch_channel_t *channel = switch_core_session_get_channel(session);
 	switch_caller_profile_t *caller_profile;
 	cJSON *j_main_cp, *j_times, *j_callflow, *j_profile, *j_o;
-
 
 	caller_profile = switch_channel_get_caller_profile(channel);
 
@@ -338,7 +364,8 @@ static switch_status_t kz_report_callflow(switch_core_session_t *session, switch
 		}
 
 		if (!zstr(caller_profile->profile_index)) {
-			cJSON_AddItemToObject(j_profile, "profile_index", cJSON_CreateString((char *)caller_profile->profile_index));
+			cJSON_AddItemToObject(j_profile, "profile_index",
+								  cJSON_CreateString((char *)caller_profile->profile_index));
 		}
 
 		kz_report_callflow_extension(caller_profile, j_profile);
@@ -366,7 +393,8 @@ static switch_status_t kz_report_callflow(switch_core_session_t *session, switch
 			j_times = cJSON_CreateObject();
 			cJSON_AddItemToObject(j_profile, "Time", j_times);
 			cJSON_AddItemToObject(j_times, "Created", cJSON_CreateNumber(caller_profile->times->created));
-			cJSON_AddItemToObject(j_times, "Profile-Created", cJSON_CreateNumber(caller_profile->times->profile_created));
+			cJSON_AddItemToObject(j_times, "Profile-Created",
+								  cJSON_CreateNumber(caller_profile->times->profile_created));
 			cJSON_AddItemToObject(j_times, "Progress", cJSON_CreateNumber(caller_profile->times->progress));
 			cJSON_AddItemToObject(j_times, "Progress-Media", cJSON_CreateNumber(caller_profile->times->progress_media));
 			cJSON_AddItemToObject(j_times, "Answered", cJSON_CreateNumber(caller_profile->times->answered));
@@ -381,15 +409,13 @@ static switch_status_t kz_report_callflow(switch_core_session_t *session, switch
 		caller_profile = caller_profile->next;
 	}
 
-	switch_event_add_header_string_nodup(cdr_event, SWITCH_STACK_BOTTOM, "_json_callflow", cJSON_PrintUnformatted(j_callflow));
+	switch_event_add_header_string_nodup(cdr_event, SWITCH_STACK_BOTTOM, "_json_callflow",
+										 cJSON_PrintUnformatted(j_callflow));
 
 	cJSON_Delete(j_callflow);
 
-
 	return SWITCH_STATUS_SUCCESS;
-
 }
-
 
 #define ORIGINATED_LEGS_VARIABLE "originated_legs"
 #define ORIGINATED_LEGS_ITEM_DELIM ';'
@@ -404,8 +430,8 @@ static switch_status_t kz_report_originated_legs(switch_core_session_t *session,
 	const char *originated_legs_var = NULL, *originate_causes_var = NULL;
 	int idx = 0;
 
-	while(1) {
-		char *argv_leg[10] = { 0 }, *argv_cause[10] = { 0 };
+	while (1) {
+		char *argv_leg[10] = {0}, *argv_cause[10] = {0};
 		char *originated_legs, *originate_causes;
 		cJSON *j_originated_leg;
 		originated_legs_var = switch_channel_get_variable_dup(channel, ORIGINATED_LEGS_VARIABLE, SWITCH_FALSE, idx);
@@ -418,8 +444,10 @@ static switch_status_t kz_report_originated_legs(switch_core_session_t *session,
 		originated_legs = strdup(originated_legs_var);
 		originate_causes = strdup(originate_causes_var);
 
-		switch_separate_string(originated_legs, ORIGINATED_LEGS_ITEM_DELIM, argv_leg, (sizeof(argv_leg) / sizeof(argv_leg[0])));
-		switch_separate_string(originate_causes, ORIGINATE_CAUSES_ITEM_DELIM, argv_cause, (sizeof(argv_cause) / sizeof(argv_cause[0])));
+		switch_separate_string(originated_legs, ORIGINATED_LEGS_ITEM_DELIM, argv_leg,
+							   (sizeof(argv_leg) / sizeof(argv_leg[0])));
+		switch_separate_string(originate_causes, ORIGINATE_CAUSES_ITEM_DELIM, argv_cause,
+							   (sizeof(argv_cause) / sizeof(argv_cause[0])));
 
 		j_originated_leg = cJSON_CreateObject();
 		cJSON_AddItemToObject(j_originated_leg, "Call-ID", cJSON_CreateString(argv_leg[0]));
@@ -435,7 +463,8 @@ static switch_status_t kz_report_originated_legs(switch_core_session_t *session,
 		idx++;
 	}
 
-	switch_event_add_header_string_nodup(cdr_event, SWITCH_STACK_BOTTOM, "_json_originated_legs", cJSON_PrintUnformatted(j_originated));
+	switch_event_add_header_string_nodup(cdr_event, SWITCH_STACK_BOTTOM, "_json_originated_legs",
+										 cJSON_PrintUnformatted(j_originated));
 
 	cJSON_Delete(j_originated);
 
@@ -446,30 +475,30 @@ static switch_status_t kz_report_originated_legs(switch_core_session_t *session,
 #define HST_ARRAY_DELIM "|:"
 #define HST_ITEM_DELIM ':'
 
-static void kz_report_transfer_history_item(char* value, cJSON *json)
+static void kz_report_transfer_history_item(char *value, cJSON *json)
 {
-	char *argv[4] = { 0 };
+	char *argv[4] = {0};
 	char *item = strdup(value);
 	int argc = switch_separate_string(item, HST_ITEM_DELIM, argv, (sizeof(argv) / sizeof(argv[0])));
 	cJSON *jitem = cJSON_CreateObject();
 	char *epoch = NULL, *callid = NULL, *type = NULL;
 	int add = 0;
-	if(argc == 4) {
+	if (argc == 4) {
 		add = 1;
 		epoch = argv[0];
 		callid = argv[1];
 		type = argv[2];
 
-		if(!strncmp(type, "bl_xfer", 7)) {
-			//char *split = strchr(argv[3], '/');
-			//if(split) *(split++) = '\0';
+		if (!strncmp(type, "bl_xfer", 7)) {
+			// char *split = strchr(argv[3], '/');
+			// if(split) *(split++) = '\0';
 			cJSON_AddItemToObject(jitem, "Caller-Profile-ID", cJSON_CreateString(callid));
 			cJSON_AddItemToObject(jitem, "Type", cJSON_CreateString("blind"));
 			cJSON_AddItemToObject(jitem, "Extension", cJSON_CreateString(argv[3]));
 			cJSON_AddItemToObject(jitem, "Timestamp", cJSON_CreateNumber(strtod(epoch, NULL)));
-		} else if(!strncmp(type, "att_xfer", 8)) {
+		} else if (!strncmp(type, "att_xfer", 8)) {
 			char *split = strchr(argv[3], '/');
-			if(split) {
+			if (split) {
 				*(split++) = '\0';
 				cJSON_AddItemToObject(jitem, "Caller-Profile-ID", cJSON_CreateString(callid));
 				cJSON_AddItemToObject(jitem, "Type", cJSON_CreateString("attended"));
@@ -477,22 +506,24 @@ static void kz_report_transfer_history_item(char* value, cJSON *json)
 				cJSON_AddItemToObject(jitem, "Transferer", cJSON_CreateString(split));
 				cJSON_AddItemToObject(jitem, "Timestamp", cJSON_CreateNumber(strtod(epoch, NULL)));
 			} else {
-				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_WARNING, "TRANSFER TYPE '%s' NOT HANDLED => %s\n", type, item);
+				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_WARNING, "Transfer type '%s' not handled: %s\n", type,
+								  item);
 				add = 0;
 			}
-		} else if(!strncmp(type, "uuid_br", 7)) {
+		} else if (!strncmp(type, "uuid_br", 7)) {
 			cJSON_AddItemToObject(jitem, "Caller-Profile-ID", cJSON_CreateString(callid));
 			cJSON_AddItemToObject(jitem, "Type", cJSON_CreateString("bridge"));
 			cJSON_AddItemToObject(jitem, "Other-Leg", cJSON_CreateString(argv[3]));
 			cJSON_AddItemToObject(jitem, "Timestamp", cJSON_CreateNumber(strtod(epoch, NULL)));
 		} else {
-			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_WARNING, "TRANSFER TYPE '%s' NOT HANDLED => %s\n", type, item);
+			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_WARNING, "Transfer type '%s' not handled: %s\n", type,
+							  item);
 			add = 0;
 		}
 	} else {
-		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_WARNING, "TRANSFER TYPE SPLIT ERROR %i => %s\n", argc, item);
+		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_WARNING, "Transfer type split error %i: %s\n", argc, item);
 	}
-	if(add) {
+	if (add) {
 		cJSON_AddItemToArray(json, jitem);
 	} else {
 		cJSON_Delete(jitem);
@@ -500,11 +531,12 @@ static void kz_report_transfer_history_item(char* value, cJSON *json)
 	switch_safe_free(item);
 }
 
-static switch_status_t kz_report_transfer_history(switch_core_session_t *session, switch_event_t *cdr_event, const char* var_name)
+static switch_status_t kz_report_transfer_history(switch_core_session_t *session, switch_event_t *cdr_event,
+												  const char *var_name)
 {
 	switch_channel_t *channel = switch_core_session_get_channel(session);
 	cJSON *j_transfer = NULL;
-	char *tmp_history = NULL, *history = NULL, *argv[MAX_HISTORY] = { 0 };
+	char *tmp_history = NULL, *history = NULL, *argv[MAX_HISTORY] = {0};
 	char event_header[50];
 	int n, argc = 0;
 	const char *transfer_var = switch_channel_get_variable_dup(channel, var_name, SWITCH_FALSE, -1);
@@ -523,13 +555,15 @@ static switch_status_t kz_report_transfer_history(switch_core_session_t *session
 	if (!strncmp(history, "ARRAY::", 7)) {
 		history += 7;
 		argc = switch_separate_string_string(history, HST_ARRAY_DELIM, argv, (sizeof(argv) / sizeof(argv[0])));
-		for(n=0; n < argc; n++) {
+		for (n = 0; n < argc; n++) {
 			kz_report_transfer_history_item(argv[n], j_transfer);
 		}
-		switch_event_add_header_string_nodup(cdr_event, SWITCH_STACK_BOTTOM, event_header, cJSON_PrintUnformatted(j_transfer));
+		switch_event_add_header_string_nodup(cdr_event, SWITCH_STACK_BOTTOM, event_header,
+											 cJSON_PrintUnformatted(j_transfer));
 	} else if (strchr(history, HST_ITEM_DELIM)) {
 		kz_report_transfer_history_item(history, j_transfer);
-		switch_event_add_header_string_nodup(cdr_event, SWITCH_STACK_BOTTOM, event_header, cJSON_PrintUnformatted(j_transfer));
+		switch_event_add_header_string_nodup(cdr_event, SWITCH_STACK_BOTTOM, event_header,
+											 cJSON_PrintUnformatted(j_transfer));
 	}
 	cJSON_Delete(j_transfer);
 	switch_safe_free(tmp_history);
@@ -549,14 +583,14 @@ static switch_status_t kz_report(switch_core_session_t *session, switch_event_t 
 	return SWITCH_STATUS_SUCCESS;
 }
 
-
 static switch_status_t kz_cdr_on_reporting(switch_core_session_t *session)
 {
 	switch_event_t *cdr_event = NULL;
 	switch_channel_t *channel = switch_core_session_get_channel(session);
 
 	if (switch_event_create_subclass(&cdr_event, SWITCH_EVENT_CUSTOM, MY_EVENT_JSON_CDR) != SWITCH_STATUS_SUCCESS) {
-		switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_ERROR, "error creating event for report data!\n");
+		switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_ERROR,
+						  "Failed to create event for report data\n");
 		return SWITCH_STATUS_FALSE;
 	}
 
@@ -566,7 +600,6 @@ static switch_status_t kz_cdr_on_reporting(switch_core_session_t *session)
 
 	return SWITCH_STATUS_SUCCESS;
 }
-
 
 static switch_state_handler_table_t kz_cdr_state_handlers = {
 	/*.on_init */ NULL,
@@ -579,9 +612,7 @@ static switch_state_handler_table_t kz_cdr_state_handlers = {
 	/*.on_hibernate */ NULL,
 	/*.on_reset */ NULL,
 	/*.on_park */ NULL,
-	/*.on_reporting */ kz_cdr_on_reporting
-};
-
+	/*.on_reporting */ kz_cdr_on_reporting};
 
 static void kz_cdr_register_state_handlers()
 {
@@ -596,7 +627,7 @@ static void kz_cdr_unregister_state_handlers()
 static void kz_cdr_register_events()
 {
 	if (switch_event_reserve_subclass(MY_EVENT_JSON_CDR) != SWITCH_STATUS_SUCCESS) {
-		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Couldn't register subclass %s!\n", MY_EVENT_JSON_CDR);
+		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Failed to register subclass %s\n", MY_EVENT_JSON_CDR);
 	}
 }
 
@@ -604,7 +635,6 @@ static void kz_cdr_unregister_events()
 {
 	switch_event_free_subclass(MY_EVENT_JSON_CDR);
 }
-
 
 void kz_cdr_start()
 {
@@ -617,14 +647,3 @@ void kz_cdr_stop()
 	kz_cdr_unregister_state_handlers();
 	kz_cdr_unregister_events();
 }
-
-/* For Emacs:
- * Local Variables:
- * mode:c
- * indent-tabs-mode:t
- * tab-width:4
- * c-basic-offset:4
- * End:
- * For VIM:
- * vim:set softtabstop=4 shiftwidth=4 tabstop=4:
- */

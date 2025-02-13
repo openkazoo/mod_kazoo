@@ -30,37 +30,36 @@
  * kazoo_dptools.c -- clones of mod_dptools commands slightly modified for kazoo
  *
  */
+
 #include "mod_kazoo.h"
 
 #define INTERACTION_VARIABLE "Call-Interaction-ID"
 
-static const char *x_bridge_variables[] = {
-		"Call-Control-Queue",
-		"Call-Control-PID",
-		"Call-Control-Node",
-		INTERACTION_VARIABLE,
-		"ecallmgr_Ecallmgr-Node",
-		"sip_h_k-cid",
-		"Switch-URI",
-		"Switch-URL",
-		NULL
-};
+static const char *x_bridge_variables[] = {"Call-Control-Queue",
+										   "Call-Control-PID",
+										   "Call-Control-Node",
+										   INTERACTION_VARIABLE,
+										   "ecallmgr_Ecallmgr-Node",
+										   "sip_h_k-cid",
+										   "Switch-URI",
+										   "Switch-URL",
+										   NULL};
 
 static void kz_tweaks_variables_to_event(switch_core_session_t *session, switch_event_t *event)
 {
 	int i;
 	switch_channel_t *channel = switch_core_session_get_channel(session);
-	for(i = 0; x_bridge_variables[i] != NULL; i++) {
+	for (i = 0; x_bridge_variables[i] != NULL; i++) {
 		const char *val = switch_channel_get_variable_dup(channel, x_bridge_variables[i], SWITCH_FALSE, -1);
 		switch_event_add_header_string(event, SWITCH_STACK_BOTTOM, x_bridge_variables[i], val);
 	}
 }
 
-static switch_call_cause_t kz_endpoint_outgoing_channel(switch_core_session_t *session,
-							switch_event_t *var_event,
-							switch_caller_profile_t *outbound_profile_in,
-							switch_core_session_t **new_session, switch_memory_pool_t **pool, switch_originate_flag_t flags,
-							switch_call_cause_t *cancel_cause)
+static switch_call_cause_t kz_endpoint_outgoing_channel(switch_core_session_t *session, switch_event_t *var_event,
+														switch_caller_profile_t *outbound_profile_in,
+														switch_core_session_t **new_session,
+														switch_memory_pool_t **pool, switch_originate_flag_t flags,
+														switch_call_cause_t *cancel_cause)
 {
 	switch_xml_t x_user = NULL, x_param, x_params, x_callfwd;
 	char *user = NULL, *domain = NULL, *dup_domain = NULL, *dialed_user = NULL;
@@ -69,10 +68,10 @@ static switch_call_cause_t kz_endpoint_outgoing_channel(switch_core_session_t *s
 	unsigned int timelimit = SWITCH_DEFAULT_TIMEOUT;
 	switch_channel_t *new_channel = NULL;
 	switch_event_t *params = NULL, *var_event_orig = var_event;
-	char stupid[128] = "";
+	char check_dest[128] = "";
 	const char *skip = NULL, *var = NULL;
 	switch_core_session_t *a_session = NULL, *e_session = NULL;
-	cJSON * ctx = NULL;
+	cJSON *ctx = NULL;
 	const char *endpoint_dial = NULL;
 	const char *callforward_dial = NULL;
 	const char *failover_dial = NULL;
@@ -88,16 +87,16 @@ static switch_call_cause_t kz_endpoint_outgoing_channel(switch_core_session_t *s
 	switch_status_t status = SWITCH_STATUS_SUCCESS;
 	switch_caller_profile_t *outbound_profile = NULL;
 
-
 	if (zstr(outbound_profile_in->destination_number)) {
-		switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_WARNING, "NO DESTINATION NUMBER\n");
+		switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_WARNING, "No destination number\n");
 		goto done;
 	}
 
 	user = strdup(outbound_profile_in->destination_number);
 
-	if (!user)
+	if (!user) {
 		goto done;
+	}
 
 	if ((domain = strchr(user, '@'))) {
 		*domain++ = '\0';
@@ -109,7 +108,6 @@ static switch_call_cause_t kz_endpoint_outgoing_channel(switch_core_session_t *s
 	if (!domain) {
 		goto done;
 	}
-
 
 	switch_event_create(&params, SWITCH_EVENT_REQUEST_PARAMS);
 	switch_assert(params);
@@ -124,24 +122,27 @@ static switch_call_cause_t kz_endpoint_outgoing_channel(switch_core_session_t *s
 	}
 
 	if (var_event && (skip = switch_event_get_header(var_event, "user_recurse_variables")) && switch_false(skip)) {
-		if ((var = switch_event_get_header(var_event, SWITCH_CALL_TIMEOUT_VARIABLE)) || (var = switch_event_get_header(var_event, "leg_timeout"))) {
+		if ((var = switch_event_get_header(var_event, SWITCH_CALL_TIMEOUT_VARIABLE)) ||
+			(var = switch_event_get_header(var_event, "leg_timeout"))) {
 			timelimit = atoi(var);
 		}
 		var_event = NULL;
 	}
 
 	if (switch_xml_locate_user_merged("id", user, domain, NULL, &x_user, params) != SWITCH_STATUS_SUCCESS) {
-		switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_WARNING, "Can't find user [%s@%s]\n", user, domain);
+		switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_WARNING, "Failed to find user [%s@%s]\n",
+						  user, domain);
 		cause = SWITCH_CAUSE_SUBSCRIBER_ABSENT;
 		goto done;
 	}
 
 	if (var_event) {
-		const char * str_ctx = switch_event_get_header(var_event, "kz-endpoint-runtime-context");
-		if ( str_ctx  ) {
+		const char *str_ctx = switch_event_get_header(var_event, "kz-endpoint-runtime-context");
+		if (str_ctx) {
 			ctx = cJSON_Parse(str_ctx);
 			if (ctx) {
-				switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG, "call context parsed => %s\n", str_ctx);
+				switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG, "Call context parsed: %s\n",
+								  str_ctx);
 			}
 		}
 	}
@@ -150,7 +151,8 @@ static switch_call_cause_t kz_endpoint_outgoing_channel(switch_core_session_t *s
 		for (x_param = switch_xml_child(x_params, "variable"); x_param; x_param = x_param->next) {
 			const char *pvar = switch_xml_attr_soft(x_param, "name");
 			const char *val = switch_xml_attr(x_param, "value");
-			switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG, "adding variable to var_event => %s = %s\n", pvar, val);
+			switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG,
+							  "Adding variable to var_event: %s = %s\n", pvar, val);
 			if (!var_event) {
 				switch_event_create(&var_event, SWITCH_EVENT_GENERAL);
 			} else {
@@ -177,7 +179,8 @@ static switch_call_cause_t kz_endpoint_outgoing_channel(switch_core_session_t *s
 				} else {
 					switch_event_del_header(var_event, pvar + 9);
 				}
-				switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG, "adding dialog var to var_event => %s = %s\n", pvar + 9, val);
+				switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG,
+								  "Adding dialog var to var_event: %s = %s\n", pvar + 9, val);
 				switch_event_add_header_string(var_event, SWITCH_STACK_BOTTOM, pvar + 9, val);
 			}
 		}
@@ -185,14 +188,13 @@ static switch_call_cause_t kz_endpoint_outgoing_channel(switch_core_session_t *s
 
 	x_callfwd = switch_xml_child(x_user, "call-forward");
 	if (x_callfwd) {
-		switch_bool_t call_fwd_is_substitute = SWITCH_FALSE,
-				call_fwd_is_failover = SWITCH_FALSE,
-				call_fwd_direct_calls_only = SWITCH_FALSE,
-				call_fwd_is_valid = SWITCH_TRUE;
+		switch_bool_t call_fwd_is_substitute = SWITCH_FALSE, call_fwd_is_failover = SWITCH_FALSE,
+					  call_fwd_direct_calls_only = SWITCH_FALSE, call_fwd_is_valid = SWITCH_TRUE;
 		for (x_param = switch_xml_child(x_callfwd, "variable"); x_param; x_param = x_param->next) {
 			const char *var = switch_xml_attr_soft(x_param, "name");
 			const char *val = switch_xml_attr(x_param, "value");
-			switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG, "cfw %s => %s\n", var, val);
+			switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG, "Call forward: %s => %s\n", var,
+							  val);
 			if (!strcasecmp(var, "Is-Substitute")) {
 				call_fwd_is_substitute = switch_true(val);
 			} else if (!strcasecmp(var, "Is-Failover")) {
@@ -204,18 +206,20 @@ static switch_call_cause_t kz_endpoint_outgoing_channel(switch_core_session_t *s
 
 		if (call_fwd_direct_calls_only) {
 			call_fwd_is_valid = SWITCH_FALSE;
-			if (ctx ) {
+			if (ctx) {
 				cJSON *json_flags = cJSON_GetObjectItem(ctx, "Flags");
 				if (json_flags && json_flags->type == cJSON_Array) {
 					cJSON *item;
-					cJSON_ArrayForEach(item, json_flags) {
+					cJSON_ArrayForEach(item, json_flags)
+					{
 						if (!strcmp(item->valuestring, "direct_call")) {
 							call_fwd_is_valid = SWITCH_TRUE;
 							break;
 						}
 					}
 					if (!call_fwd_is_valid) {
-						switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG, "call fwd requires direct_call and it was not found\n");
+						switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG,
+										  "Call forward requires direct_call and it was not found\n");
 					}
 				}
 			}
@@ -224,15 +228,20 @@ static switch_call_cause_t kz_endpoint_outgoing_channel(switch_core_session_t *s
 		if (!call_fwd_is_valid) {
 			dest = endpoint_dial ? strdup(endpoint_dial) : strdup("");
 		} else if (call_fwd_is_failover) {
-			switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG, "setting failover => %s\n", callforward_dial);
+			switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG, "Setting failover: %s\n",
+							  callforward_dial);
 			dest = endpoint_dial ? strdup(endpoint_dial) : strdup("");
 			failover_dial = callforward_dial;
 		} else if (call_fwd_is_substitute) {
 			dest = callforward_dial ? strdup(callforward_dial) : strdup("");
-			switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG, "setting call fwd substitute => %s\n", dest);
+			switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG,
+							  "Setting call forward substitute: %s\n", dest);
 		} else {
-			dest = switch_mprintf("%s%s%s", endpoint_dial ? endpoint_dial : "", (endpoint_dial ? endpoint_separator ? endpoint_separator : "," : ""), callforward_dial);
-			switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG, "setting call fwd append => %s => %s\n", callforward_dial, dest);
+			dest =
+				switch_mprintf("%s%s%s", endpoint_dial ? endpoint_dial : "",
+							   (endpoint_dial ? endpoint_separator ? endpoint_separator : "," : ""), callforward_dial);
+			switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG,
+							  "Setting call forward append: %s => %s\n", callforward_dial, dest);
 		}
 	} else {
 		dest = endpoint_dial ? strdup(endpoint_dial) : strdup("");
@@ -246,7 +255,8 @@ static switch_call_cause_t kz_endpoint_outgoing_channel(switch_core_session_t *s
 	}
 
 	if (!dest) {
-		switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_ERROR, "No dial-string available, please check your user directory.\n");
+		switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_ERROR,
+						  "No dial-string available, please check your user directory\n");
 		cause = SWITCH_CAUSE_MANDATORY_IE_MISSING;
 		goto done;
 	}
@@ -256,22 +266,22 @@ static switch_call_cause_t kz_endpoint_outgoing_channel(switch_core_session_t *s
 		cid_num_override = switch_event_get_header(var_event, "origination_caller_id_number");
 	}
 
-	if(session) {
+	if (session) {
 		a_session = session;
-	} else if(var_event) {
-		const char* uuid_e_session = switch_event_get_header(var_event, "ent_originate_aleg_uuid");
-		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "CHECKING ORIGINATE-UUID : %s\n", uuid_e_session);
+	} else if (var_event) {
+		const char *uuid_e_session = switch_event_get_header(var_event, "ent_originate_aleg_uuid");
+		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Checking Originate-UUID: %s\n", uuid_e_session);
 		if (uuid_e_session && (e_session = switch_core_session_locate(uuid_e_session)) != NULL) {
 			a_session = e_session;
-			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "FOUND ORIGINATE-UUID : %s\n", uuid_e_session);
+			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Found Originate-UUID: %s\n", uuid_e_session);
 		}
 	}
 
 	if (a_session) {
 		switch_event_create(&event, SWITCH_EVENT_GENERAL);
 		channel = switch_core_session_get_channel(a_session);
-		if ((varval = switch_channel_get_variable(channel, SWITCH_CALL_TIMEOUT_VARIABLE))
-			|| (var_event && (varval = switch_event_get_header(var_event, "leg_timeout")))) {
+		if ((varval = switch_channel_get_variable(channel, SWITCH_CALL_TIMEOUT_VARIABLE)) ||
+			(var_event && (varval = switch_event_get_header(var_event, "leg_timeout")))) {
 			timelimit = atoi(varval);
 		}
 		switch_channel_event_set_data(channel, event);
@@ -301,7 +311,8 @@ static switch_call_cause_t kz_endpoint_outgoing_channel(switch_core_session_t *s
 		for (x_param = switch_xml_child(x_params, "variable"); x_param; x_param = x_param->next) {
 			const char *pvar = switch_xml_attr_soft(x_param, "name");
 			const char *val = switch_xml_attr(x_param, "value");
-			switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG, "adding profile variable to event => %s = %s\n", pvar, val);
+			switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG,
+							  "Adding profile variable to event: %s = %s\n", pvar, val);
 			switch_event_add_header_string(event, SWITCH_STACK_BOTTOM, pvar, val);
 		}
 	}
@@ -310,7 +321,8 @@ static switch_call_cause_t kz_endpoint_outgoing_channel(switch_core_session_t *s
 		for (x_param = switch_xml_child(x_params, "variable"); x_param; x_param = x_param->next) {
 			const char *pvar = switch_xml_attr_soft(x_param, "name");
 			const char *val = switch_xml_attr(x_param, "value");
-			switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG, "adding variable to event => %s = %s\n", pvar, val);
+			switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG,
+							  "Adding variable to event: %s = %s\n", pvar, val);
 			switch_event_add_header_string(event, SWITCH_STACK_BOTTOM, pvar, val);
 		}
 	}
@@ -322,7 +334,8 @@ static switch_call_cause_t kz_endpoint_outgoing_channel(switch_core_session_t *s
 
 			if (!strncasecmp(pvar, "dial-var-", 9)) {
 				switch_event_del_header(event, pvar + 9);
-				switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG, "adding dialog var to event => %s = %s\n", pvar + 9, val);
+				switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG,
+								  "Adding dialog var to event: %s = %s\n", pvar + 9, val);
 				switch_event_add_header_string(event, SWITCH_STACK_BOTTOM, pvar + 9, val);
 			}
 		}
@@ -334,9 +347,9 @@ static switch_call_cause_t kz_endpoint_outgoing_channel(switch_core_session_t *s
 	}
 
 	d_dest = kz_event_expand_headers(event, dest);
-	switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG, "dialing %s => %s\n", dest, d_dest);
+	switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG, "Dialing %s => %s\n", dest, d_dest);
 
-	if(failover_dial) {
+	if (failover_dial) {
 		b_failover_dial = kz_event_expand_headers(event, failover_dial);
 	}
 
@@ -346,7 +359,6 @@ static switch_call_cause_t kz_endpoint_outgoing_channel(switch_core_session_t *s
 
 	switch_event_destroy(&event);
 
-
 	if ((flags & SOF_NO_LIMITS)) {
 		myflags |= SOF_NO_LIMITS;
 	}
@@ -355,19 +367,20 @@ static switch_call_cause_t kz_endpoint_outgoing_channel(switch_core_session_t *s
 		myflags |= SOF_NOBLOCK;
 	}
 
-	if ( a_session ) {
-		if(var_event) {
+	if (a_session) {
+		if (var_event) {
 			kz_tweaks_variables_to_event(a_session, var_event);
 		}
 	}
 
-	if(e_session) {
+	if (e_session) {
 		switch_core_session_rwunlock(e_session);
 	}
 
-	switch_snprintf(stupid, sizeof(stupid), "kz/%s", dialed_user);
-	if (switch_stristr(stupid, d_dest)) {
-		switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_WARNING, "Waddya Daft? You almost called '%s' in an infinate loop!\n", stupid);
+	switch_snprintf(check_dest, sizeof(check_dest), "kz/%s", dialed_user);
+	if (switch_stristr(check_dest, d_dest)) {
+		switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_WARNING,
+						  "Invalid destination ('%s' creates an infinate loop)\n", check_dest);
 		cause = SWITCH_CAUSE_INVALID_IE_CONTENTS;
 		goto done;
 	}
@@ -376,15 +389,15 @@ static switch_call_cause_t kz_endpoint_outgoing_channel(switch_core_session_t *s
 	outbound_profile = outbound_profile_in;
 	/*
 	outbound_profile = switch_caller_profile_dup(outbound_profile_in->pool, outbound_profile_in);
-	switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(*new_session), SWITCH_LOG_DEBUG1, "CHECKING CALLER-ID\n");
+	switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(*new_session), SWITCH_LOG_DEBUG1, "Checking Caller-ID\n");
 	if ((x_params = switch_xml_child(x_user, "profile-variables"))) {
 		const char* val = NULL;
 		outbound_profile->soft = NULL;
 		for (x_param = switch_xml_child(x_params, "variable"); x_param; x_param = x_param->next) {
 			const char *pvar = switch_xml_attr(x_param, "name");
 			const char *val = switch_xml_attr(x_param, "value");
-			switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(*new_session), SWITCH_LOG_DEBUG1, "setting profile var %s = %s\n", pvar, val);
-			switch_caller_profile_set_var(outbound_profile, pvar, val);
+			switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(*new_session), SWITCH_LOG_DEBUG1, "Setting profile var %s =
+	%s\n", pvar, val); switch_caller_profile_set_var(outbound_profile, pvar, val);
 		}
 		// * TODO * verify onnet/offnet
 		if((val=switch_caller_get_field_by_name(outbound_profile, "Endpoint-Caller-ID-Name"))) {
@@ -398,15 +411,13 @@ static switch_call_cause_t kz_endpoint_outgoing_channel(switch_core_session_t *s
 	}
 	*/
 
-	status = switch_ivr_originate(session, new_session, &cause, d_dest, timelimit, NULL,
-	 	                         cid_name_override, cid_num_override, outbound_profile, var_event, myflags,
-	 	                         cancel_cause, NULL);
+	status = switch_ivr_originate(session, new_session, &cause, d_dest, timelimit, NULL, cid_name_override,
+								  cid_num_override, outbound_profile, var_event, myflags, cancel_cause, NULL);
 
 	if (status != SWITCH_STATUS_SUCCESS && b_failover_dial) {
-		switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_INFO, "trying failover => %s\n", failover_dial);
-		status = switch_ivr_originate(session, new_session, &cause, b_failover_dial, timelimit, NULL,
-		 	                         cid_name_override, cid_num_override, outbound_profile, var_event, myflags,
-		 	                         cancel_cause, NULL);
+		switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_INFO, "Trying failover: %s\n", failover_dial);
+		status = switch_ivr_originate(session, new_session, &cause, b_failover_dial, timelimit, NULL, cid_name_override,
+									  cid_num_override, outbound_profile, var_event, myflags, cancel_cause, NULL);
 	}
 
 	if (status == SWITCH_STATUS_SUCCESS) {
@@ -425,25 +436,25 @@ static switch_call_cause_t kz_endpoint_outgoing_channel(switch_core_session_t *s
 			}
 		}
 
-
-		switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(*new_session), SWITCH_LOG_DEBUG1, "CHECKING CALLER-ID\n");
+		switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(*new_session), SWITCH_LOG_DEBUG1, "Checking Caller-ID\n");
 		if ((x_params = switch_xml_child(x_user, "profile-variables"))) {
 			switch_caller_profile_t *cp = switch_channel_get_caller_profile(new_channel);
-			const char* val = NULL;
+			const char *val = NULL;
 			cp->soft = NULL;
 			for (x_param = switch_xml_child(x_params, "variable"); x_param; x_param = x_param->next) {
 				const char *pvar = switch_xml_attr(x_param, "name");
 				const char *val = switch_xml_attr(x_param, "value");
-				switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(*new_session), SWITCH_LOG_DEBUG1, "setting profile var %s = %s\n", pvar, val);
+				switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(*new_session), SWITCH_LOG_DEBUG1,
+								  "setting profile var %s = %s\n", pvar, val);
 				switch_channel_set_profile_var(new_channel, pvar, val);
-				//switch_caller_profile_set_var(cp, pvar, val);
+				// switch_caller_profile_set_var(cp, pvar, val);
 			}
 			// * TODO * verify onnet/offnet
-			if((val=switch_caller_get_field_by_name(cp, "Endpoint-Caller-ID-Name"))) {
-					cp->callee_id_name = val;
-					cp->orig_caller_id_name = val;
+			if ((val = switch_caller_get_field_by_name(cp, "Endpoint-Caller-ID-Name"))) {
+				cp->callee_id_name = val;
+				cp->orig_caller_id_name = val;
 			}
-			if((val=switch_caller_get_field_by_name(cp, "Endpoint-Caller-ID-Number"))) {
+			if ((val = switch_caller_get_field_by_name(cp, "Endpoint-Caller-ID-Number"))) {
 				cp->callee_id_number = val;
 				cp->orig_caller_id_number = val;
 			}
@@ -451,21 +462,21 @@ static switch_call_cause_t kz_endpoint_outgoing_channel(switch_core_session_t *s
 		switch_core_session_rwunlock(*new_session);
 	}
 
-  done:
+done:
 
 	if (d_dest && d_dest != dest) {
 		switch_safe_free(d_dest);
 	}
 
-	if(b_failover_dial && b_failover_dial != failover_dial) {
+	if (b_failover_dial && b_failover_dial != failover_dial) {
 		switch_safe_free(b_failover_dial);
 	}
 
 	switch_safe_free(dest);
 
-  	if (ctx) {
-  		cJSON_Delete(ctx);
-  	}
+	if (ctx) {
+		cJSON_Delete(ctx);
+	}
 
 	if (x_user) {
 		switch_xml_free(x_user);
@@ -484,17 +495,16 @@ static switch_call_cause_t kz_endpoint_outgoing_channel(switch_core_session_t *s
 	return cause;
 }
 
-
 /* kazoo endpoint */
 
-
 switch_io_routines_t kz_endpoint_io_routines = {
-	/*.outgoing_channel */ kz_endpoint_outgoing_channel
-};
+	/*.outgoing_channel */ kz_endpoint_outgoing_channel};
 
-void add_kz_endpoints(switch_loadable_module_interface_t **module_interface) {
+void add_kz_endpoints(switch_loadable_module_interface_t **module_interface)
+{
 	switch_endpoint_interface_t *kz_endpoint_interface;
-	kz_endpoint_interface = (switch_endpoint_interface_t *) switch_loadable_module_create_interface(*module_interface, SWITCH_ENDPOINT_INTERFACE);
+	kz_endpoint_interface = (switch_endpoint_interface_t *)switch_loadable_module_create_interface(
+		*module_interface, SWITCH_ENDPOINT_INTERFACE);
 	kz_endpoint_interface->interface_name = "kz";
 	kz_endpoint_interface->io_routines = &kz_endpoint_io_routines;
 }

@@ -32,6 +32,7 @@
  * ei_helpers.c -- helper functions for ei
  *
  */
+
 #include "mod_kazoo.h"
 
 /* Stolen from code added to ei in R12B-5.
@@ -39,21 +40,24 @@
  * provide our own version.
  * */
 
-#define put8(s,n) do {							\
-        (s)[0] = (char)((n) & 0xff);			\
-        (s) += 1;								\
+#define put8(s, n)                                                                                                     \
+	do {                                                                                                               \
+		(s)[0] = (char)((n) & 0xff);                                                                                   \
+		(s) += 1;                                                                                                      \
 	} while (0)
 
-#define put32be(s,n) do {						\
-        (s)[0] = ((n) >>  24) & 0xff;			\
-        (s)[1] = ((n) >>  16) & 0xff;			\
-        (s)[2] = ((n) >>  8) & 0xff;			\
-        (s)[3] = (n) & 0xff;					\
-        (s) += 4;								\
+#define put32be(s, n)                                                                                                  \
+	do {                                                                                                               \
+		(s)[0] = ((n) >> 24) & 0xff;                                                                                   \
+		(s)[1] = ((n) >> 16) & 0xff;                                                                                   \
+		(s)[2] = ((n) >> 8) & 0xff;                                                                                    \
+		(s)[3] = (n) & 0xff;                                                                                           \
+		(s) += 4;                                                                                                      \
 	} while (0)
 
 #ifdef EI_DEBUG
-static void ei_x_print_reg_msg(ei_x_buff *buf, char *dest, int send) {
+static void ei_x_print_reg_msg(ei_x_buff *buf, char *dest, int send)
+{
 	char *mbuf = NULL;
 	int i = 1;
 
@@ -68,7 +72,8 @@ static void ei_x_print_reg_msg(ei_x_buff *buf, char *dest, int send) {
 	free(mbuf);
 }
 
-static void ei_x_print_msg(ei_x_buff *buf, erlang_pid *pid, int send) {
+static void ei_x_print_msg(ei_x_buff *buf, erlang_pid *pid, int send)
+{
 	char *pbuf = NULL;
 	int i = 0;
 	ei_x_buff pidbuf;
@@ -97,8 +102,9 @@ void ei_encode_switch_event_headers_2(ei_x_buff *ebuf, switch_event_t *event, in
 	for (i = 0, hp = event->headers; hp; hp = hp->next, i++)
 		;
 
-	if (event->body)
+	if (event->body) {
 		i++;
+	}
 
 	ei_x_encode_list_header(ebuf, i + 1);
 
@@ -129,17 +135,18 @@ void ei_encode_switch_event_headers_2(ei_x_buff *ebuf, switch_event_t *event, in
 
 int ei_json_child_count(cJSON *JObj)
 {
-	int mask = cJSON_False | cJSON_True | cJSON_NULL | cJSON_Number | cJSON_String | cJSON_Array | cJSON_Object | cJSON_Raw;
+	int mask =
+		cJSON_False | cJSON_True | cJSON_NULL | cJSON_Number | cJSON_String | cJSON_Array | cJSON_Object | cJSON_Raw;
 
 	cJSON *item = JObj->child;
 	int i = 0;
 	while (item) {
-		if (item->type & mask)
+		if (item->type & mask) {
 			i++;
+		}
 		item = item->next;
 	}
 	return i;
-
 }
 
 void ei_encode_json_array(ei_x_buff *ebuf, cJSON *JObj)
@@ -148,18 +155,20 @@ void ei_encode_json_array(ei_x_buff *ebuf, cJSON *JObj)
 	int count = ei_json_child_count(JObj);
 
 	ei_x_encode_list_header(ebuf, count);
-	if (count == 0)
+	if (count == 0) {
 		return;
+	}
 
 	item = JObj->child;
 	while (item) {
-		switch (item->type){
+		switch (item->type) {
 		case cJSON_String:
 			ei_x_encode_binary(ebuf, item->valuestring, strlen(item->valuestring));
 			break;
 
 		case cJSON_Number:
-			if ((fabs(((double) item->valueint) - item->valuedouble) <= DBL_EPSILON) && (item->valuedouble <= INT_MAX) && (item->valuedouble >= INT_MIN)) {
+			if ((fabs(((double)item->valueint) - item->valuedouble) <= DBL_EPSILON) && (item->valuedouble <= INT_MAX) &&
+				(item->valuedouble >= INT_MIN)) {
 				ei_x_encode_longlong(ebuf, item->valueint);
 			} else {
 				if (fmod(item->valuedouble, 1) == 0) {
@@ -189,7 +198,8 @@ void ei_encode_json_array(ei_x_buff *ebuf, cJSON *JObj)
 		case cJSON_Raw: {
 			cJSON *Decoded = cJSON_Parse(item->valuestring);
 			if (!Decoded) {
-				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "ERROR DECODING RAW JSON %s\n", item->valuestring);
+				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Failed to decode JSON: %s\n",
+								  item->valuestring);
 				ei_x_encode_tuple_header(ebuf, 0);
 			} else {
 				ei_encode_json(ebuf, Decoded);
@@ -203,15 +213,13 @@ void ei_encode_json_array(ei_x_buff *ebuf, cJSON *JObj)
 			break;
 
 		default:
-			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "NOT ENCODED %i\n", item->type);
+			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Not encoded: %i\n", item->type);
 			break;
-
 		}
 		item = item->next;
 	}
 
 	ei_x_encode_empty_list(ebuf);
-
 }
 
 void ei_encode_json(ei_x_buff *ebuf, cJSON *JObj)
@@ -226,8 +234,9 @@ void ei_encode_json(ei_x_buff *ebuf, cJSON *JObj)
 		ei_x_encode_map_header(ebuf, count);
 	}
 
-	if (count == 0)
+	if (count == 0) {
 		return;
+	}
 
 	item = JObj->child;
 	while (item) {
@@ -236,13 +245,14 @@ void ei_encode_json(ei_x_buff *ebuf, cJSON *JObj)
 		}
 		ei_x_encode_binary(ebuf, item->string, strlen(item->string));
 
-		switch (item->type){
+		switch (item->type) {
 		case cJSON_String:
 			ei_x_encode_binary(ebuf, item->valuestring, strlen(item->valuestring));
 			break;
 
 		case cJSON_Number:
-			if ((fabs(((double) item->valueint) - item->valuedouble) <= DBL_EPSILON) && (item->valuedouble <= INT_MAX) && (item->valuedouble >= INT_MIN)) {
+			if ((fabs(((double)item->valueint) - item->valuedouble) <= DBL_EPSILON) && (item->valuedouble <= INT_MAX) &&
+				(item->valuedouble >= INT_MIN)) {
 				ei_x_encode_longlong(ebuf, item->valueint);
 			} else {
 				if (fmod(item->valuedouble, 1) == 0) {
@@ -272,7 +282,8 @@ void ei_encode_json(ei_x_buff *ebuf, cJSON *JObj)
 		case cJSON_Raw: {
 			cJSON *Decoded = cJSON_Parse(item->valuestring);
 			if (!Decoded) {
-				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "ERROR DECODING RAW JSON %s\n", item->valuestring);
+				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Failed to decode JSON: %s\n",
+								  item->valuestring);
 				ei_x_encode_tuple_header(ebuf, 0);
 			} else {
 				ei_encode_json(ebuf, Decoded);
@@ -286,9 +297,8 @@ void ei_encode_json(ei_x_buff *ebuf, cJSON *JObj)
 			break;
 
 		default:
-			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "NOT ENCODED %i\n", item->type);
+			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Not encoded: %i\n", item->type);
 			break;
-
 		}
 		item = item->next;
 	}
@@ -296,10 +306,9 @@ void ei_encode_json(ei_x_buff *ebuf, cJSON *JObj)
 	if (kazoo_globals.json_encoding == ERLANG_TUPLE) {
 		ei_x_encode_empty_list(ebuf);
 	}
-
 }
 
-void close_socket(switch_socket_t ** sock)
+void close_socket(switch_socket_t **sock)
 {
 	if (*sock) {
 		switch_socket_shutdown(*sock, SWITCH_SHUTDOWN_READWRITE);
@@ -351,7 +360,6 @@ switch_socket_t *create_socket_with_port(switch_memory_pool_t *pool, switch_port
 switch_socket_t *create_socket(switch_memory_pool_t *pool)
 {
 	return create_socket_with_port(pool, 0);
-
 }
 
 switch_status_t create_ei_cnode(const char *ip_addr, const char *name, struct ei_cnode_s *ei_cnode)
@@ -382,11 +390,13 @@ switch_status_t create_ei_cnode(const char *ip_addr, const char *name, struct ei
 		}
 	}
 
-	switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_INFO, "creating nodename: %s\n", nodename);
+	switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_INFO, "Creating nodename: %s\n", nodename);
 
 	/* init the ec stuff */
-	if (ei_connect_xinit(ei_cnode, hostname, cnodename, nodename, (Erl_IpAddr) ip_addr, kazoo_globals.ei_cookie, 0) < 0) {
-		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Failed to initialize the erlang interface connection structure\n");
+	if (ei_connect_xinit(ei_cnode, hostname, cnodename, nodename, (Erl_IpAddr)ip_addr, kazoo_globals.ei_cookie, 0) <
+		0) {
+		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR,
+						  "Failed to initialize the erlang interface connection structure\n");
 		return SWITCH_STATUS_FALSE;
 	}
 
@@ -395,34 +405,36 @@ switch_status_t create_ei_cnode(const char *ip_addr, const char *name, struct ei
 
 switch_status_t ei_compare_pids(const erlang_pid *pid1, const erlang_pid *pid2)
 {
-	if ((!strcmp(pid1->node, pid2->node)) && pid1->creation == pid2->creation && pid1->num == pid2->num && pid1->serial == pid2->serial) {
+	if ((!strcmp(pid1->node, pid2->node)) && pid1->creation == pid2->creation && pid1->num == pid2->num &&
+		pid1->serial == pid2->serial) {
 		return SWITCH_STATUS_SUCCESS;
 	} else {
 		return SWITCH_STATUS_FALSE;
 	}
 }
 
-void ei_link(ei_node_t *ei_node, erlang_pid * from, erlang_pid * to)
+void ei_link(ei_node_t *ei_node, erlang_pid *from, erlang_pid *to)
 {
 	char msgbuf[2048];
 	char *s;
 	int index = 0;
 
-	index = 5; /* max sizes: */
+	index = 5;						   /* max sizes: */
 	ei_encode_version(msgbuf, &index); /*   1 */
 	ei_encode_tuple_header(msgbuf, &index, 3);
 	ei_encode_long(msgbuf, &index, ERL_LINK);
 	ei_encode_pid(msgbuf, &index, from); /* 268 */
-	ei_encode_pid(msgbuf, &index, to); /* 268 */
+	ei_encode_pid(msgbuf, &index, to);	 /* 268 */
 
 	/* 5 byte header missing */
 	s = msgbuf;
-	put32be(s, index - 4); /*   4 */
+	put32be(s, index - 4);	   /*   4 */
 	put8(s, ERL_PASS_THROUGH); /*   1 */
 	/* sum:  542 */
 
 	if (write(ei_node->nodefd, msgbuf, index) == -1) {
-		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_WARNING, "Failed to link to process on %s\n", ei_node->peer_nodename);
+		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_WARNING, "Failed to link to process on %s\n",
+						  ei_node->peer_nodename);
 	}
 }
 
@@ -454,10 +466,12 @@ int ei_decode_atom_safe(char *buf, int *index, char *dst)
 	ei_get_type(buf, index, &type, &size);
 
 	if (type != ERL_ATOM_EXT) {
-		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Unexpected erlang term type %d (size %d), needed atom\n", type, size);
+		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR,
+						  "Unexpected erlang term type %d (size %d), needed atom\n", type, size);
 		return -1;
 	} else if (size > MAXATOMLEN) {
-		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Requested decoding of atom with size %d into a buffer of size %d\n", size, MAXATOMLEN);
+		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR,
+						  "Requested decoding of atom with size %d into a buffer of size %d\n", size, MAXATOMLEN);
 		return -1;
 	} else {
 		return ei_decode_atom(buf, index, dst);
@@ -472,7 +486,8 @@ int ei_decode_string_or_binary(char *buf, int *index, char **dst)
 	ei_get_type(buf, index, &type, &size);
 
 	if (type != ERL_STRING_EXT && type != ERL_BINARY_EXT && type != ERL_LIST_EXT && type != ERL_NIL_EXT) {
-		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Unexpected erlang term type %d (size %d), needed binary or string\n", type, size);
+		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR,
+						  "Unexpected erlang term type %d (size %d), needed binary or string\n", type, size);
 		return -1;
 	}
 
@@ -499,13 +514,15 @@ int ei_decode_string_or_binary_limited(char *buf, int *index, int maxsize, char 
 	ei_get_type(buf, index, &type, &size);
 
 	if (type != ERL_STRING_EXT && type != ERL_BINARY_EXT && type != ERL_LIST_EXT && type != ERL_NIL_EXT) {
-		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Unexpected erlang term type %d (size %d), needed binary or string\n", type, size);
+		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR,
+						  "Unexpected erlang term type %d (size %d), needed binary or string\n", type, size);
 		return -1;
 	}
 
 	if (size > maxsize) {
-		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Requested decoding of %s with size %d into a buffer of size %d\n",
-		                  type == ERL_BINARY_EXT ? "binary" : "string", size, maxsize);
+		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR,
+						  "Requested decoding of %s with size %d into a buffer of size %d\n",
+						  type == ERL_BINARY_EXT ? "binary" : "string", size, maxsize);
 		return -1;
 	}
 
@@ -531,7 +548,8 @@ switch_status_t create_acceptor()
 
 	/* if the config has specified an erlang release compatibility then pass that along to the erlang interface */
 	if (kazoo_globals.ei_compat_rel) {
-		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Compatability with OTP R%d requested\n", kazoo_globals.ei_compat_rel);
+		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Compatability with OTP R%d requested\n",
+						  kazoo_globals.ei_compat_rel);
 		ei_set_compat_rel(kazoo_globals.ei_compat_rel);
 	}
 
@@ -544,7 +562,8 @@ switch_status_t create_acceptor()
 	port = switch_sockaddr_get_port(sa);
 	ip_addr = switch_get_addr(ipbuf, sizeof(ipbuf), sa);
 
-	switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Erlang connection acceptor listening on %s:%u\n", ip_addr, port);
+	switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Erlang connection acceptor listening on %s:%u\n", ip_addr,
+					  port);
 
 	/* try to initialize the erlang interface */
 	if (create_ei_cnode(ip_addr, kazoo_globals.ei_nodename, &kazoo_globals.ei_cnode) != SWITCH_STATUS_SUCCESS) {
@@ -553,10 +572,12 @@ switch_status_t create_acceptor()
 
 	/* tell the erlang port manager where we can be reached.  this returns a file descriptor pointing to epmd or -1 */
 	if ((kazoo_globals.epmdfd = ei_publish(&kazoo_globals.ei_cnode, port)) == -1) {
-		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_WARNING, "Failed to publish port to epmd, trying to start epmd via system()\n");
+		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_WARNING,
+						  "Failed to publish port to epmd, trying to start epmd via system()\n");
 		if (system("fs_epmd -daemon")) {
 			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR,
-			                  "Failed to start epmd manually! Is epmd in $PATH? If not, start it yourself or run an erl shell with -sname or -name\n");
+							  "Failed to start epmd manually! Is epmd in $PATH? If not, start it yourself or run an "
+							  "erl shell with -sname or -name\n");
 			return SWITCH_STATUS_SOCKERR;
 		}
 		switch_yield(100000);
@@ -566,8 +587,9 @@ switch_status_t create_acceptor()
 		}
 	}
 
-	switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "Connected to epmd and published erlang cnode name %s at port %d\n", kazoo_globals.ei_cnode.thisnodename,
-	                  port);
+	switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG,
+					  "Connected to epmd and published erlang cnode name %s at port %d\n",
+					  kazoo_globals.ei_cnode.thisnodename, port);
 
 	return SWITCH_STATUS_SUCCESS;
 }
@@ -873,7 +895,7 @@ static void fetch_config_filters(switch_memory_pool_t *pool)
 
 			switch_core_hash_init(&filter);
 			for (param = switch_xml_child(child, "header"); param; param = param->next) {
-				char *var = (char *) switch_xml_attr_soft(param, "name");
+				char *var = (char *)switch_xml_attr_soft(param, "name");
 				switch_core_hash_insert(filter, var, "1");
 			}
 
@@ -888,7 +910,6 @@ static void fetch_config_filters(switch_memory_pool_t *pool)
 		switch_xml_free(xml);
 	}
 	switch_event_destroy(&params);
-
 }
 
 static void fetch_config_handlers(switch_memory_pool_t *pool)
@@ -908,12 +929,11 @@ static void fetch_config_handlers(switch_memory_pool_t *pool)
 		switch_xml_free(xml);
 	}
 	switch_event_destroy(&params);
-
 }
 
 static void *SWITCH_THREAD_FUNC fetch_config_exec(switch_thread_t *thread, void *obj)
 {
-	switch_memory_pool_t *pool = (switch_memory_pool_t *) obj;
+	switch_memory_pool_t *pool = (switch_memory_pool_t *)obj;
 	ei_node_t *node;
 	int fetch_filters = 0, fetch_handlers = 0;
 
@@ -921,7 +941,7 @@ static void *SWITCH_THREAD_FUNC fetch_config_exec(switch_thread_t *thread, void 
 	switch_sleep(kazoo_globals.delay_before_initial_fetch);
 
 	for (node = kazoo_globals.ei_nodes; node != NULL; node = node->next) {
-		if (node->legacy ) {
+		if (node->legacy) {
 			fetch_filters++;
 		} else {
 			fetch_handlers++;
@@ -929,12 +949,12 @@ static void *SWITCH_THREAD_FUNC fetch_config_exec(switch_thread_t *thread, void 
 	}
 
 	if (fetch_filters) {
-		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_NOTICE, "fetching filters for kazoo\n");
+		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_NOTICE, "Fetching filters for Kazoo\n");
 		fetch_config_filters(pool);
 	}
 
 	if (fetch_handlers) {
-		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_NOTICE, "fetching kazoo handlers\n");
+		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_NOTICE, "Fetching Kazoo handlers\n");
 		fetch_config_handlers(pool);
 	}
 
@@ -950,7 +970,7 @@ void fetch_config()
 	switch_threadattr_t *thd_attr = NULL;
 	switch_uuid_t uuid;
 
-	switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_NOTICE, "scheduling fetch for kazoo config\n");
+	switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_NOTICE, "Scheduling fetch for Kazoo config\n");
 
 	switch_core_new_memory_pool(&pool);
 
@@ -960,7 +980,6 @@ void fetch_config()
 
 	switch_uuid_get(&uuid);
 	switch_thread_create(&thread, thd_attr, fetch_config_exec, pool, pool);
-
 }
 
 #ifdef WITH_KAZOO_ERL_SHUTDOWN
@@ -973,11 +992,11 @@ typedef struct ei_mutex_s {
 #else /* unix */
 #if defined(HAVE_MIT_PTHREAD_H) || defined(HAVE_PTHREAD_H)
 	pthread_mutex_t *lock;
-#else /* ! (HAVE_MIT_PTHREAD_H || HAVE_PTHREAD_H) */
+#else  /* ! (HAVE_MIT_PTHREAD_H || HAVE_PTHREAD_H) */
 	void *dummy; /* Actually never used */
 #endif /* ! (HAVE_MIT_PTHREAD_H || HAVE_PTHREAD_H) */
 #endif /* unix */
-}ei_mutex_t;
+} ei_mutex_t;
 
 typedef struct ei_socket_info_s {
 	int socket;
@@ -985,11 +1004,11 @@ typedef struct ei_socket_info_s {
 	void *ctx;
 	int dist_version;
 	ei_cnode cnode; /* A copy, not a pointer. We don't know when freed */
-	char cookie[EI_MAX_COOKIE_SIZE+1];
-}ei_socket_info;
+	char cookie[EI_MAX_COOKIE_SIZE + 1];
+} ei_socket_info;
 
 extern ei_socket_info *ei_sockets;
-extern ei_mutex_t* ei_sockets_lock;
+extern ei_mutex_t *ei_sockets_lock;
 extern int ei_n_sockets;
 extern int ei_sz_sockets;
 
@@ -1024,7 +1043,7 @@ SWITCH_MODULE_RUNTIME_FUNCTION(mod_kazoo_runtime)
 
 	if (create_acceptor() != SWITCH_STATUS_SUCCESS) {
 		// TODO: what would we need to clean up here
-		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Unable to create erlang connection acceptor!\n");
+		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Failed to create Erlang connection acceptor\n");
 		close_socket(&kazoo_globals.acceptor);
 		return SWITCH_STATUS_TERM;
 	}
@@ -1041,15 +1060,20 @@ SWITCH_MODULE_RUNTIME_FUNCTION(mod_kazoo_runtime)
 		/* mismatch or a godzilla attack (and a godzilla attack is highly likely) */
 		errno = 0;
 
-		/* wait here for an erlang node to connect, timming out to check if our module is still running every now-and-again */
-		if ((nodefd = ei_accept_tmo(&kazoo_globals.ei_cnode, (int) os_socket, &conn, kazoo_globals.connection_timeout)) == ERL_ERROR) {
+		/* wait here for an erlang node to connect, timming out to check if our module is still running every
+		 * now-and-again */
+		if ((nodefd = ei_accept_tmo(&kazoo_globals.ei_cnode, (int)os_socket, &conn,
+									kazoo_globals.connection_timeout)) == ERL_ERROR) {
 			if (erl_errno == ETIMEDOUT) {
 				continue;
 			} else if (errno) {
-				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "Erlang connection acceptor socket error %d %d\n", erl_errno, errno);
+				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR,
+								  "Erlang connection acceptor socket error %d %d\n", erl_errno, errno);
 			} else {
 				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_WARNING,
-				                  "Erlang node connection failed - ensure your cookie matches '%s' and you are using a good nodename\n", kazoo_globals.ei_cookie);
+								  "Erlang node connection failed - ensure your cookie matches '%s' and you are using a "
+								  "good nodename\n",
+								  kazoo_globals.ei_cookie);
 			}
 			continue;
 		}
@@ -1077,13 +1101,3 @@ SWITCH_DECLARE(switch_status_t) ei_queue_pop(switch_queue_t *queue, void **data,
 		return switch_queue_pop_timeout(queue, data, timeout);
 	}
 }
-/* For Emacs:
- * Local Variables:
- * mode:c
- * indent-tabs-mode:t
- * tab-width:4
- * c-basic-offset:4
- * End:
- * For VIM:
- * vim:set softtabstop=4 shiftwidth=4 tabstop=4:
- */

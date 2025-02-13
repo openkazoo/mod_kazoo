@@ -1,8 +1,8 @@
 #ifndef KAZOO_EI_H
 #define KAZOO_EI_H
 
-#include <switch.h>
 #include <ei.h>
+#include <switch.h>
 
 #define MODNAME "mod_kazoo"
 #define BUNDLE "community"
@@ -13,9 +13,9 @@
 #define HOSTNAME_MAX 1024
 #define NODENAME_MAX 1024
 
-typedef enum {KAZOO_FETCH_PROFILE, KAZOO_EVENT_PROFILE} kazoo_profile_type;
+typedef enum { KAZOO_FETCH_PROFILE, KAZOO_EVENT_PROFILE } kazoo_profile_type;
 
-typedef enum {ERLANG_TUPLE, ERLANG_MAP} kazoo_json_term;
+typedef enum { ERLANG_TUPLE, ERLANG_MAP } kazoo_json_term;
 
 typedef struct ei_xml_agent_s ei_xml_agent_t;
 typedef ei_xml_agent_t *ei_xml_agent_ptr;
@@ -32,8 +32,8 @@ typedef kazoo_fetch_profile_t *kazoo_fetch_profile_ptr;
 typedef struct kazoo_config_t kazoo_config;
 typedef kazoo_config *kazoo_config_ptr;
 
-#include "kazoo_fields.h"
 #include "kazoo_config.h"
+#include "kazoo_fields.h"
 
 struct ei_send_msg_s {
 	ei_x_buff buf;
@@ -47,7 +47,6 @@ struct ei_received_msg_s {
 };
 typedef struct ei_received_msg_s ei_received_msg_t;
 
-
 typedef struct ei_event_stream_s ei_event_stream_t;
 typedef struct ei_node_s ei_node_t;
 
@@ -56,7 +55,7 @@ struct ei_event_binding_s {
 	switch_event_node_t *node;
 	switch_event_types_t type;
 	const char *subclass_name;
-	ei_event_stream_t* stream;
+	ei_event_stream_t *stream;
 	kazoo_event_ptr event;
 
 	struct ei_event_binding_s *next;
@@ -113,7 +112,6 @@ struct ei_node_s {
 	struct ei_node_s *next;
 };
 
-
 struct xml_fetch_reply_s {
 	char uuid_str[SWITCH_UUID_FORMATTED_LENGTH + 1];
 	char *xml_str;
@@ -145,7 +143,6 @@ struct ei_xml_agent_s {
 	switch_thread_cond_t *new_reply;
 	xml_fetch_reply_t *replies;
 	kazoo_fetch_profile_ptr profile;
-
 };
 
 struct kz_globals_s {
@@ -171,7 +168,7 @@ struct kz_globals_s {
 	int ei_compat_rel;
 	char *ip;
 	char *hostname;
-	struct hostent* hostname_ent;
+	struct hostent *hostname_ent;
 	char *ei_cookie;
 	char *ei_nodename;
 	uint32_t flags;
@@ -195,7 +192,7 @@ struct kz_globals_s {
 	kazoo_config_ptr definitions;
 	kazoo_config_ptr event_handlers;
 	kazoo_config_ptr fetch_handlers;
-	kazoo_json_term  json_encoding;
+	kazoo_json_term json_encoding;
 
 	char **profile_vars_prefixes;
 	char **kazoo_var_prefixes;
@@ -205,8 +202,6 @@ struct kz_globals_s {
 	switch_bool_t expand_headers_on_fetch;
 
 	switch_interval_time_t delay_before_initial_fetch;
-
-
 };
 typedef struct kz_globals_s kz_globals_t;
 extern kz_globals_t kazoo_globals;
@@ -214,16 +209,17 @@ extern kz_globals_t kazoo_globals;
 /* kazoo_event_stream.c */
 ei_event_stream_t *find_event_stream(ei_event_stream_t *event_streams, const erlang_pid *from);
 
-//ei_event_stream_t *new_event_stream(ei_event_stream_t **event_streams, const erlang_pid *from);
+// ei_event_stream_t *new_event_stream(ei_event_stream_t **event_streams, const erlang_pid *from);
 ei_event_stream_t *new_event_stream(ei_node_t *ei_node, const erlang_pid *from);
-
 
 switch_status_t remove_event_stream(ei_event_stream_t **event_streams, const erlang_pid *from);
 switch_status_t remove_event_streams(ei_event_stream_t **event_streams);
 unsigned long get_stream_port(const ei_event_stream_t *event_stream);
 switch_status_t add_event_binding(ei_event_stream_t *event_stream, const char *event_name);
-//switch_status_t add_event_binding(ei_event_stream_t *event_stream, const switch_event_types_t event_type, const char *subclass_name);
-switch_status_t remove_event_binding(ei_event_stream_t *event_stream, const switch_event_types_t event_type, const char *subclass_name);
+// switch_status_t add_event_binding(ei_event_stream_t *event_stream, const switch_event_types_t event_type, const char
+// *subclass_name);
+switch_status_t remove_event_binding(ei_event_stream_t *event_stream, const switch_event_types_t event_type,
+									 const char *subclass_name);
 switch_status_t remove_event_bindings(ei_event_stream_t *event_stream);
 
 /* kazoo_node.c */
@@ -239,9 +235,9 @@ switch_status_t ei_compare_pids(const erlang_pid *pid1, const erlang_pid *pid2);
 void ei_encode_switch_event_headers(ei_x_buff *ebuf, switch_event_t *event);
 void ei_encode_switch_event_headers_2(ei_x_buff *ebuf, switch_event_t *event, int decode);
 void ei_encode_json(ei_x_buff *ebuf, cJSON *JObj);
-void ei_link(ei_node_t *ei_node, erlang_pid * from, erlang_pid * to);
-void ei_encode_switch_event(ei_x_buff * ebuf, switch_event_t *event);
-int ei_helper_send(ei_node_t *ei_node, erlang_pid* to, ei_x_buff *buf);
+void ei_link(ei_node_t *ei_node, erlang_pid *from, erlang_pid *to);
+void ei_encode_switch_event(ei_x_buff *ebuf, switch_event_t *event);
+int ei_helper_send(ei_node_t *ei_node, erlang_pid *to, ei_x_buff *buf);
 int ei_decode_atom_safe(char *buf, int *index, char *dst);
 int ei_decode_string_or_binary_limited(char *buf, int *index, int maxsize, char *dst);
 int ei_decode_string_or_binary(char *buf, int *index, char **dst);
@@ -257,7 +253,10 @@ switch_status_t kazoo_load_config();
 void kazoo_destroy_config();
 void kz_set_hostname();
 
-#define _ei_x_encode_string(buf, string) { ei_x_encode_binary(buf, string, strlen(string)); }
+#define _ei_x_encode_string(buf, string)                                                                               \
+	{                                                                                                                  \
+		ei_x_encode_binary(buf, string, strlen(string));                                                               \
+	}
 
 /* kazoo_fetch_agent.c */
 switch_status_t bind_fetch_agents();
@@ -275,21 +274,8 @@ switch_status_t kazoo_config_handlers(switch_xml_t cfg);
 /* runtime */
 SWITCH_MODULE_RUNTIME_FUNCTION(mod_kazoo_runtime);
 
-
-
 #define kz_test_tweak(flag) (kazoo_globals.tweaks[flag] ? 1 : 0)
 #define kz_set_tweak(flag) kazoo_globals.tweaks[flag] = 1
 #define kz_clear_tweak(flag) kazoo_globals.tweaks[flag] = 0
 
 #endif /* KAZOO_EI_H */
-
-/* For Emacs:
- * Local Variables:
- * mode:c
- * indent-tabs-mode:t
- * tab-width:4
- * c-basic-offset:4
- * End:
- * For VIM:
- * vim:set softtabstop=4 shiftwidth=4 tabstop=4:
- */
